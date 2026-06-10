@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>babyGLOW Campaign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --porcelain:#FBF7F3; --surface:#FFFFFF; --ink:#2C2330; --muted:#9A8E94;
+  --line:#EFE6DF; --coral:#F4795B; --coral-deep:#E25F44; --amber:#FFC371;
+  --soft:#FDEDE6; --glow1:#FF8A65; --glow2:#FFC371;
+  --green:#4FA97F; --green-soft:#E3F3EB; --blue:#5B8DEF; --blue-soft:#E7EFFD;
+  --warn:#E0A23B; --warn-soft:#FBF0DA; --rose:#D9607A; --rose-soft:#FBE6EC;
+  --radius:16px; --shadow:0 1px 3px rgba(44,35,48,.06),0 8px 24px rgba(44,35,48,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--porcelain);color:var(--ink);
+  line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+h1,h2,h3,.display{font-family:'Fraunces',serif}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+a{color:var(--coral-deep);text-decoration:none}
+a:hover{text-decoration:underline}
+input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink);
+  border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--coral);outline-offset:-1px;border-color:transparent}
+.hidden{display:none!important}
+
+/* ---------- Gate / login ---------- */
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(120% 80% at 50% -10%, #FFE3D2 0%, var(--porcelain) 55%)}
+.gate-card{background:var(--surface);border-radius:24px;box-shadow:var(--shadow);
+  padding:40px 36px;max-width:420px;width:100%;text-align:center;border:1px solid var(--line)}
+.brand{display:inline-flex;align-items:center;gap:0;font-family:'Fraunces';font-weight:600}
+.brand .baby{font-size:30px;color:var(--ink)}
+.brand .glow{font-size:30px;background:linear-gradient(95deg,var(--glow1),var(--glow2));
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;font-style:italic}
+.gate-sub{color:var(--muted);font-size:13px;margin-top:6px;letter-spacing:.08em;text-transform:uppercase}
+.gate-tagline{margin:22px 0 26px;font-family:'Fraunces';font-size:18px;color:var(--ink)}
+.role-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
+.role-btn{border:1px solid var(--line);border-radius:14px;padding:18px 12px;background:#fff;
+  transition:.15s;text-align:center}
+.role-btn:hover{border-color:var(--coral);transform:translateY(-2px);box-shadow:var(--shadow)}
+.role-btn .ic{font-size:22px;display:block;margin-bottom:6px}
+.role-btn .t{font-weight:600;font-size:14px}
+.role-btn .d{font-size:11px;color:var(--muted);margin-top:3px}
+.pw-wrap{margin-top:14px;text-align:left}
+.pw-wrap label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+.pw-row{display:flex;gap:8px}
+.btn-primary{background:linear-gradient(95deg,var(--glow1),var(--glow2));color:#fff;font-weight:600;
+  border-radius:10px;padding:9px 16px;white-space:nowrap;transition:.15s}
+.btn-primary:hover{filter:brightness(1.04);box-shadow:0 6px 16px rgba(244,121,91,.3)}
+.err{color:var(--rose);font-size:12px;margin-top:8px;min-height:16px}
+
+/* ---------- App shell ---------- */
+.shell{max-width:1180px;margin:0 auto;padding:0 20px 80px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:18px 0 16px;flex-wrap:wrap}
+.topbar .brand .baby,.topbar .brand .glow{font-size:24px}
+.top-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{font-size:11px;font-weight:600;padding:5px 10px;border-radius:999px;letter-spacing:.03em}
+.chip.admin{background:var(--soft);color:var(--coral-deep)}
+.chip.viewer{background:var(--blue-soft);color:var(--blue)}
+.btn-ghost{border:1px solid var(--line);border-radius:9px;padding:7px 12px;font-size:13px;
+  font-weight:500;color:var(--ink);background:#fff;transition:.15s}
+.btn-ghost:hover{border-color:var(--coral);color:var(--coral-deep)}
+.lang-toggle{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.lang-toggle button{padding:6px 11px;font-size:12px;font-weight:600;color:var(--muted)}
+.lang-toggle button.on{background:var(--ink);color:#fff}
+
+/* tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:24px;overflow-x:auto}
+.tab{padding:11px 16px;font-size:14px;font-weight:600;color:var(--muted);
+  border-bottom:2px solid transparent;white-space:nowrap;transition:.15s}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--coral-deep);border-bottom-color:var(--coral)}
+.tab .count{font-size:11px;background:var(--soft);color:var(--coral-deep);
+  padding:1px 7px;border-radius:999px;margin-left:6px;font-weight:600}
+
+/* section headers */
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;
+  margin-bottom:18px;flex-wrap:wrap}
+.sec-head h2{font-size:26px;font-weight:600;line-height:1.1}
+.sec-head p{color:var(--muted);font-size:13px;margin-top:4px}
+.sec-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* filter pills */
+.filters{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap}
+.fpill{font-size:12px;font-weight:600;padding:6px 13px;border-radius:999px;
+  border:1px solid var(--line);background:#fff;color:var(--muted);transition:.15s}
+.fpill:hover{border-color:var(--coral)}
+.fpill.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* influencer grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:14px}
+.icard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;transition:.15s;position:relative}
+.icard:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.icard-top{display:flex;gap:12px;align-items:center}
+.avatar{width:46px;height:46px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-weight:700;color:#fff;font-size:17px;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.icard .handle{font-weight:600;font-size:15px;display:flex;align-items:center;gap:5px}
+.icard .rname{font-size:12px;color:var(--muted)}
+.statustag{position:absolute;top:14px;right:14px;font-size:10px;font-weight:700;
+  padding:3px 8px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase}
+.st-confirmed{background:var(--green-soft);color:var(--green)}
+.st-secured{background:var(--soft);color:var(--coral-deep)}
+.st-candidate{background:var(--warn-soft);color:var(--warn)}
+.st-rejected{background:#F0EBED;color:var(--muted)}
+.socials{display:flex;gap:7px;margin-top:13px}
+.soc{flex:1;border:1px solid var(--line);border-radius:9px;padding:7px 8px;text-align:center;
+  font-size:11px;color:var(--ink);font-weight:600;transition:.15s;display:block}
+.soc:hover{border-color:var(--coral);text-decoration:none;background:var(--soft)}
+.soc .lbl{display:block;font-size:9px;color:var(--muted);letter-spacing:.08em;margin-bottom:1px}
+.icard-meta{margin-top:11px;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.icard-meta b{color:var(--ink);font-weight:600}
+.icard-actions{display:flex;gap:6px;margin-top:12px}
+.mini{font-size:11px;font-weight:600;padding:5px 9px;border-radius:8px;border:1px solid var(--line);
+  background:#fff;color:var(--ink);transition:.15s}
+.mini:hover{border-color:var(--coral);color:var(--coral-deep)}
+.mini.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mini.solid:hover{background:var(--coral-deep);border-color:var(--coral-deep);color:#fff}
+
+/* clinic cards */
+.clinic-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;display:flex;flex-direction:column;gap:6px}
+.clinic-card .cname{font-family:'Fraunces';font-size:20px;font-weight:600}
+.clinic-card .cbranch{font-size:13px;color:var(--muted)}
+.clinic-card .cbookings{font-size:12px;color:var(--ink);margin-top:4px}
+.clinic-card .row-end{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+
+/* table-ish list (reviews) */
+.bcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;margin-bottom:14px}
+.bcard-head{display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.bcard-head .who{flex:1;min-width:160px}
+.bcard-head .who .h{font-weight:600;font-size:16px}
+.bcard-head .who .s{font-size:12px;color:var(--muted)}
+.binfo{display:flex;gap:18px;flex-wrap:wrap;font-size:13px}
+.binfo .it{display:flex;flex-direction:column}
+.binfo .it .k{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.binfo .it .v{font-weight:600}
+
+/* stepper */
+.stepper{display:flex;gap:0;margin:16px 0 4px;flex-wrap:wrap}
+.step{flex:1;min-width:74px;text-align:center;position:relative;padding-top:18px}
+.step:before{content:'';position:absolute;top:6px;left:50%;width:100%;height:2px;background:var(--line)}
+.step:first-child:before{display:none}
+.step .dot{width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid var(--line);
+  position:absolute;top:0;left:calc(50% - 7px);z-index:2}
+.step.done .dot{background:var(--green);border-color:var(--green)}
+.step.cur .dot{background:var(--coral);border-color:var(--coral);box-shadow:0 0 0 4px var(--soft)}
+.step.done:before,.step.cur:before{background:var(--green)}
+.step .lab{font-size:10px;color:var(--muted);line-height:1.25;display:block;padding:0 2px}
+.step.done .lab,.step.cur .lab{color:var(--ink);font-weight:600}
+
+.wf-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.field-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.field-row label{font-size:11px;font-weight:600;color:var(--muted);min-width:96px}
+.field-row input{flex:1;min-width:160px}
+
+.divider{height:1px;background:var(--line);margin:14px 0}
+.rev-thread{margin-top:6px;display:flex;flex-direction:column;gap:8px}
+.rev-msg{border:1px solid var(--line);border-radius:11px;padding:10px 12px;font-size:13px}
+.rev-msg.viewer{background:var(--blue-soft);border-color:#D6E4FB}
+.rev-msg.admin{background:var(--soft);border-color:#F8DDD2}
+.rev-msg .meta{font-size:10px;color:var(--muted);display:flex;justify-content:space-between;
+  margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.rev-msg .resolved{color:var(--green);font-weight:700}
+
+/* video block */
+.video-block{margin-top:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#000}
+.video-block iframe{width:100%;height:300px;border:none;display:block}
+.no-video{font-size:13px;color:var(--muted);padding:24px;text-align:center;border:1px dashed var(--line);
+  border-radius:12px;margin-top:12px}
+.vid,.vidframe{width:100%;height:300px;border:none;display:block;background:#000}
+.vidwrap{margin-top:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#000}
+.ms{display:flex;align-items:center;gap:11px;padding:7px 0;font-size:13.5px;color:var(--muted)}
+.ms .msdot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;line-height:1}
+.ms.on{color:var(--ink)}
+.ms.on .msdot{background:var(--green);border-color:var(--green)}
+.ms .mslab em{font-style:normal;font-weight:600;color:var(--ink)}
+.ms.on .mslab em{color:var(--green)}
+.uploadrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.filebtn{position:relative;overflow:hidden;display:inline-flex;align-items:center}
+.filebtn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+
+/* empty state */
+.empty{text-align:center;padding:56px 20px;color:var(--muted)}
+.empty .ic{font-size:34px;display:block;margin-bottom:10px}
+.empty .t{font-family:'Fraunces';font-size:20px;color:var(--ink);margin-bottom:6px}
+
+/* add form */
+.addform{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;margin-bottom:20px}
+.addform h3{font-size:14px;margin-bottom:12px;font-weight:600}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.form-grid .full{grid-column:1/-1}
+.field label{font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+
+/* modal */
+.modal-back{position:fixed;inset:0;background:rgba(44,35,48,.42);display:flex;align-items:center;
+  justify-content:center;padding:20px;z-index:50}
+.modal{background:#fff;border-radius:20px;max-width:560px;width:100%;max-height:90vh;overflow:auto;
+  box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.modal-head{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;
+  justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:2}
+.modal-head h3{font-size:18px;font-weight:600}
+.modal-body{padding:22px}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;gap:10px;
+  justify-content:flex-end;position:sticky;bottom:0;background:#fff}
+.x{font-size:20px;color:var(--muted);width:30px;height:30px;border-radius:8px}
+.x:hover{background:var(--soft);color:var(--ink)}
+
+/* toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;
+  opacity:0;transition:.25s;z-index:100;box-shadow:var(--shadow)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.note-bar{background:var(--warn-soft);border:1px solid #F1DDB0;border-radius:12px;padding:10px 14px;
+  font-size:12.5px;color:#8A6A22;margin-bottom:18px;display:flex;gap:8px;align-items:flex-start}
+.viewer-intro{background:linear-gradient(100deg,#FFF3EC,#FFF8F0);border:1px solid var(--line);
+  border-radius:var(--radius);padding:20px 22px;margin-bottom:24px}
+.viewer-intro h2{font-size:22px;font-weight:600;margin-bottom:4px}
+.viewer-intro p{font-size:13.5px;color:var(--muted)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.stat-n{font-family:'Fraunces';font-size:34px;font-weight:600;line-height:1}
+.stat-l{font-size:12.5px;color:var(--muted);margin-top:6px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.panel-h{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px;font-weight:700}
+.funnel-row{display:flex;align-items:center;gap:12px;margin-bottom:9px}
+.funnel-lab{width:200px;font-size:13px;flex-shrink:0}
+.funnel-track{flex:1;background:var(--soft);border-radius:8px;height:26px;overflow:hidden}
+.funnel-fill{height:100%;background:linear-gradient(95deg,var(--glow1),var(--glow2));border-radius:8px;
+  color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:flex-end;
+  padding:0 9px;min-width:26px;transition:width .5s ease}
+.stat-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.stat-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+.stat-table td{padding:8px;border-bottom:1px solid var(--line)}
+.stat-table tr:last-child td{border-bottom:none}
+.modechip{font-size:11px;font-weight:600;padding:5px 10px;border-radius:999px;background:#EFE6DF;color:var(--muted)}
+@media(max-width:560px){.binfo{gap:12px}.step .lab{font-size:9px}.funnel-lab{width:120px;font-size:11px}}
+
+/* ---------- reviewer schedule calendar ---------- */
+.sched-toggle{display:flex;gap:7px;margin-bottom:16px}
+.cal-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-title{font-family:'Fraunces';font-size:20px;font-weight:600}
+.cal-nav{display:flex;gap:6px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:center;font-weight:700;padding:4px 0}
+.cal-cell{min-height:80px;border:1px solid var(--line);border-radius:10px;padding:5px 5px 6px;display:flex;flex-direction:column;gap:3px;background:#fff;transition:.15s}
+.cal-cell.empty{background:transparent;border-color:transparent}
+.cal-cell.has{cursor:pointer}
+.cal-cell.has:hover{border-color:var(--coral);box-shadow:var(--shadow)}
+.cal-cell.sel{border-color:var(--coral);box-shadow:0 0 0 2px var(--soft)}
+.cal-num{font-size:11px;font-weight:700;color:var(--ink);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;align-self:flex-start}
+.cal-cell.today .cal-num{background:var(--coral);color:#fff}
+.cal-chip{font-size:10px;font-weight:600;background:var(--soft);color:var(--coral-deep);border-radius:6px;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.cal-chip.upl{background:var(--green-soft);color:var(--green)}
+.cal-more{font-size:9px;color:var(--muted);font-weight:600;padding-left:2px}
+@media(max-width:560px){.cal-cell{min-height:56px;padding:3px}.cal-chip{font-size:8.5px;padding:1px 3px}.cal-grid{gap:4px}}
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div id="gate" class="gate">
+  <div class="gate-card">
+    <div class="brand"><span class="baby">baby</span><span class="glow">GLOW</span></div>
+    <div class="gate-sub">Campaign Console</div>
+    <div class="gate-tagline">Who's signing in?</div>
+    <div class="role-row">
+      <button class="role-btn" onclick="chooseRole('viewer')">
+        <span class="ic">👀</span><span class="t">Reviewer</span>
+        <span class="d">Watch & request edits</span>
+      </button>
+      <button class="role-btn" onclick="chooseRole('admin')">
+        <span class="ic">⚙️</span><span class="t">Admin</span>
+        <span class="d">Manage the campaign</span>
+      </button>
+    </div>
+    <div id="pwWrap" class="pw-wrap hidden">
+      <label>Admin password</label>
+      <div class="pw-row">
+        <input id="pwInput" type="password" placeholder="••••" onkeydown="if(event.key==='Enter')tryAdmin()">
+        <button class="btn-primary" onclick="tryAdmin()">Enter</button>
+      </div>
+      <div id="pwErr" class="err"></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="shell hidden">
+  <div class="topbar">
+    <div class="brand"><span class="baby">baby</span><span class="glow">GLOW</span>
+      <span style="font-family:'Inter';font-size:12px;color:var(--muted);margin-left:8px;font-weight:600">CAMPAIGN</span>
+    </div>
+    <div class="top-meta">
+      <span id="storeMode" class="modechip"></span>
+      <span id="roleChip" class="chip"></span>
+      <div id="langToggle" class="lang-toggle hidden">
+        <button id="langEn" onclick="setLang('en')">EN</button>
+        <button id="langKo" onclick="setLang('ko')">한글</button>
+      </div>
+      <button id="exportBtn" class="btn-ghost hidden" onclick="exportExcel()">⬇ <span data-t="exportExcel"></span></button>
+      <button class="btn-ghost" onclick="reloadData()">↻ <span data-t="refresh"></span></button>
+      <button class="btn-ghost" onclick="signOut()"><span data-t="signOut"></span></button>
+    </div>
+  </div>
+
+  <div id="tabs" class="tabs"></div>
+  <div id="view"></div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ============================================================
+   babyGLOW Campaign — state, storage, render
+   ============================================================ */
+const STORE_KEY='babyglow:data:v1';
+const ADMIN_PW='1234';
+
+const STAGES=['confirmed','visited','filmed','footage','approved','ready','uploaded'];
+const STAGE_LABEL={
+  en:{confirmed:'Confirmed',visited:'Clinic visit',filmed:'Filming done',footage:'Footage received',
+      approved:'Upload approved',ready:'Upload ready',uploaded:'Uploaded'},
+  ko:{confirmed:'확정',visited:'방문 완료',filmed:'촬영 완료',footage:'촬영본 받음',
+      approved:'업로드 승인',ready:'업로드 준비',uploaded:'업로드 완료'}
+};
+
+const I18N={
+  en:{
+    tab_influencers:'Influencers',tab_clinics:'Clinics',tab_reviews:'Confirmed reviews',tab_track:'Status tracking',
+    refresh:'Refresh',signOut:'Sign out',exportExcel:'Export Excel',
+    inf_title:'Influencers',inf_sub:'Everyone in the pipeline, by status.',
+    addInfluencer:'+ Add influencer',addClinic:'+ Add clinic',confirmReview:'+ Confirm review',
+    fAll:'All',fConfirmed:'Confirmed',fSecured:'Secured',fCandidate:'Candidate',fRejected:'Passed',
+    clinic_title:'Clinics',clinic_sub:'Partner clinics secured for the campaign.',
+    rev_title:'Confirmed reviews',rev_sub:'Influencer · clinic · date · time.',
+    track_title:'Status tracking',track_sub:'Visit → filming → footage → revisions → upload.',
+    handle:'Handle',realName:'Real name',area:'Area',dates:'Available',clinic:'Clinic',branch:'Branch',
+    date:'Date',time:'Time',ig:'Instagram',tt:'TikTok',followers:'followers',note:'Note',map:'Map',
+    photoUrl:'Photo URL (optional)',status:'Status',mapUrl:'Google Map URL',
+    edit:'Edit',del:'Delete',save:'Save',cancel:'Cancel',confirm:'Confirm review',
+    pickInfluencer:'Influencer',selectClinic:'Select clinic…',selectInfluencer:'Select influencer…',
+    markVisit:'Mark visited',markFilmed:'Mark filmed',footageUrl:'Footage link (Google Drive)',
+    finalUrl:'Uploaded video link',uploadDate:'Upload date',saveLinks:'Save links',
+    approveUpload:'Approve upload',markReady:'Mark upload ready',markUploaded:'Mark uploaded',
+    revisions:'Revision requests',reqRevision:'Request revision',resolveRev:'Mark resolved',
+    revPlaceholder:'Describe the change you need…',send:'Send request',
+    noBookings:'No confirmed reviews yet',noBookingsSub:'Confirm an influencer to create a review.',
+    noClinics:'No clinics yet',noVideo:'Video not uploaded yet',
+    watchVideo:'Open video',resolved:'Resolved',open:'Open',by_viewer:'Reviewer',by_admin:'Admin',
+    bookedAt:'Booked',unscheduled:'time TBD',advanceStage:'Advance',
+    deleteConfirm:'Delete this item?',saved:'Saved',
+    viewer_h:'Footage to review',viewer_p:'Watch each delivered video and request changes if needed. The team will be notified.',
+    track_pending:'These reviews are confirmed but footage is not yet delivered.',
+    tab_schedule:'Schedule',firstCutVideo:'First-cut video (from influencer)',uploadVideoBtn:'Upload video file',
+    orLink:'or paste a hosted link',videoTooLarge:'File too large to store in-app (max ~3.5MB). Paste a hosted link instead (Google Drive, YouTube, or .mp4).',
+    removeVideo:'Remove video',chooseFile:'Choose file',
+    tab_stats:'Overview',
+    mode_claude:'Claude storage',mode_cloud:'Cloud sync',mode_local:'This device',
+    localNote:'Saved in this browser only. Reviewers on other devices won\u2019t see your updates until you enable free cloud sync (see the note at the top of the HTML file).'
+  },
+  ko:{
+    tab_influencers:'인플루언서',tab_clinics:'클리닉',tab_reviews:'확정 리뷰',tab_track:'진행 상태',
+    refresh:'새로고침',signOut:'로그아웃',exportExcel:'엑셀 다운로드',
+    inf_title:'인플루언서',inf_sub:'상태별 전체 파이프라인.',
+    addInfluencer:'+ 인플루언서 등록',addClinic:'+ 클리닉 등록',confirmReview:'+ 리뷰 확정',
+    fAll:'전체',fConfirmed:'확정',fSecured:'확보',fCandidate:'후보',fRejected:'보류',
+    clinic_title:'클리닉',clinic_sub:'캠페인 확보 제휴 클리닉.',
+    rev_title:'확정 리뷰',rev_sub:'인플루언서 · 클리닉 · 날짜 · 시간.',
+    track_title:'진행 상태',track_sub:'방문 → 촬영 → 촬영본 → 수정 → 업로드.',
+    handle:'계정',realName:'실명',area:'지역',dates:'가능일',clinic:'클리닉',branch:'지점',
+    date:'날짜',time:'시간',ig:'인스타그램',tt:'틱톡',followers:'팔로워',note:'메모',map:'지도',
+    photoUrl:'프로필 사진 URL (선택)',status:'상태',mapUrl:'구글 지도 URL',
+    edit:'수정',del:'삭제',save:'저장',cancel:'취소',confirm:'리뷰 확정',
+    pickInfluencer:'인플루언서',selectClinic:'클리닉 선택…',selectInfluencer:'인플루언서 선택…',
+    markVisit:'방문 완료',markFilmed:'촬영 완료',footageUrl:'촬영본 링크 (구글 드라이브)',
+    finalUrl:'업로드 영상 링크',uploadDate:'업로드 날짜',saveLinks:'링크 저장',
+    approveUpload:'업로드 승인',markReady:'업로드 준비 완료',markUploaded:'업로드 완료',
+    revisions:'수정 요청',reqRevision:'수정 신청',resolveRev:'수정 완료',
+    revPlaceholder:'필요한 수정 사항을 적어주세요…',send:'요청 보내기',
+    noBookings:'확정된 리뷰가 없습니다',noBookingsSub:'인플루언서를 확정하면 리뷰가 생성됩니다.',
+    noClinics:'등록된 클리닉이 없습니다',noVideo:'아직 영상이 업로드되지 않았습니다',
+    watchVideo:'영상 열기',resolved:'완료됨',open:'열기',by_viewer:'리뷰어',by_admin:'어드민',
+    bookedAt:'예약',unscheduled:'시간 미정',advanceStage:'다음 단계',
+    deleteConfirm:'이 항목을 삭제할까요?',saved:'저장됨',
+    viewer_h:'Footage to review',viewer_p:'Watch each delivered video and request changes if needed. The team will be notified.',
+    track_pending:'확정되었으나 촬영본이 아직 전달되지 않은 리뷰입니다.',
+    tab_schedule:'일정',firstCutVideo:'1차 영상 (인플루언서 제공)',uploadVideoBtn:'영상 파일 업로드',
+    orLink:'또는 호스팅 링크 붙여넣기',videoTooLarge:'앱에 저장하기엔 파일이 너무 큽니다(최대 약 3.5MB). 호스팅 링크(구글 드라이브, 유튜브, .mp4)를 붙여넣어 주세요.',
+    removeVideo:'영상 삭제',chooseFile:'파일 선택',
+    tab_stats:'통계',
+    mode_claude:'Claude 저장소',mode_cloud:'클라우드 동기화',mode_local:'이 기기',
+    localNote:'이 브라우저에만 저장됩니다. 다른 기기의 리뷰어가 업데이트를 보려면 무료 클라우드 동기화를 켜야 합니다(HTML 파일 상단 주석 참고).'
+  }
+};
+
+/* ---------- seed data ---------- */
+function seed(){
+  const cl=[
+    {id:'c1',name:'Reva Clinic',branch:'Stadium One',mapUrl:'https://maps.app.goo.gl/XU3gijzaDFMTD93x7'},
+    {id:'c2',name:'Atier Wellness',branch:'Phatthanakan',mapUrl:'https://maps.app.goo.gl/CNcwswz9VsarqynEA'},
+    {id:'c3',name:'MuMu Clinic',branch:'',mapUrl:''},
+    {id:'c4',name:'Kalm Clinic',branch:'',mapUrl:''},
+    {id:'c5',name:'Jairak Clinic',branch:'',mapUrl:''}
+  ];
+  const I=(o)=>Object.assign({realName:'',area:'',dates:'',ig:'',igF:'',tt:'',ttF:'',note:'',photoUrl:''},o);
+  const inf=[
+    I({h:'asa.asanoyu',area:'Ramintra / Fashion Island',dates:'11, 13',ig:'https://www.instagram.com/asa.asanoyu',igF:'27K',tt:'https://www.tiktok.com/@asa.asanoyu',ttF:'442.3K',status:'secured'}),
+    I({h:'ningningsc',realName:'สุวภัทร ชุมแก้ว',dates:'19',ig:'https://www.instagram.com/ningningsc/',igF:'14.6K',tt:'https://www.tiktok.com/@ningningsc',ttF:'',status:'confirmed'}),
+    I({h:'Senw.y',realName:'วรเศรษฐ์ ยิ่งกิจภิญโญ',area:'IconSiam / BKK',dates:'11',ig:'https://www.instagram.com/senw.y',igF:'13.8K',tt:'https://www.tiktok.com/@senw.y',ttF:'20.4K',status:'confirmed'}),
+    I({h:'Perjidakarnn',realName:'จิฎากาญจน์ ศิริพงศ์อัคร',area:'Sukhumvit 101/1',dates:'19',ig:'https://www.instagram.com/perjidakarnn',igF:'7.1K',tt:'https://www.tiktok.com/@per_jidakarn',ttF:'18.5K',status:'confirmed'}),
+    I({h:'Tarrtar',area:'Ramintra / Ari / Siam',dates:'12-13',ig:'https://www.instagram.com/tarrtar',igF:'26K',tt:'https://www.tiktok.com/@tarrtarv',ttF:'3K',status:'secured'}),
+    I({h:'baiiyook_',realName:'ชุติกาญจน์ พิสิษฐ์เดชากุล',area:'Greater Bangkok',dates:'19',ig:'https://www.instagram.com/baiiyook_/',igF:'10.2K',tt:'https://www.tiktok.com/@boobaiiyook',ttF:'21.2K',status:'confirmed'}),
+    I({h:'Bbillysr',realName:'สรายุทธ เสือมาก',area:'Siam',dates:'12',ig:'https://www.instagram.com/bbillysr/',igF:'166K',tt:'https://www.tiktok.com/@bbillysr/',ttF:'13.2K',status:'confirmed'}),
+    I({h:'uponiz',area:'Ratchayothin / Ratchada / Huai Khwang / Lat Phrao',dates:'22-25, 29-30',ig:'https://www.instagram.com/uponiz',igF:'36.6K',tt:'https://www.tiktok.com/@uponiz',ttF:'10.8K',status:'secured'}),
+    I({h:'Umimsaruu.u',area:'Sukhumvit',dates:'11, 12 (afternoon)',ig:'https://www.instagram.com/umimsaru.u',igF:'18.6K',tt:'https://www.tiktok.com/@saruu.j',ttF:'43.9K',status:'confirmed'}),
+    I({h:'aya.official59',area:'Sukhumvit',dates:'12, 13',ig:'https://www.instagram.com/aya.official59',igF:'29.4K',tt:'https://www.tiktok.com/@aya.official59',ttF:'36.1K',status:'confirmed'}),
+    I({h:'dreamdrmm',area:'Ekkamai / Thonglor / Suan Luang / Rama 9',dates:'10',ig:'https://instagram.com/dreamdrmm',igF:'31K',tt:'https://www.tiktok.com/@dreamdrmm',ttF:'29.4K',status:'confirmed'}),
+    I({h:'Superlinllyn',realName:'คชามาศ สกุลทอง',dates:'10',ig:'https://www.instagram.com/superlinllyn',igF:'21K',tt:'https://www.tiktok.com/@superlinllyn',ttF:'10.8K',status:'confirmed'}),
+    I({h:'Pimpraeww',dates:'13',ig:'https://www.instagram.com/pimpraeww',igF:'18.6K',tt:'https://www.tiktok.com/@pimpraeww',ttF:'1.3K',status:'secured'}),
+    I({h:'Saraitsmeh',area:'Prawet / Chaloem Phrakiat',dates:'10-11-12',ig:'https://www.instagram.com/saraitsmeh/',igF:'77.6K',tt:'https://www.tiktok.com/@saraitsmehlol',ttF:'19.6K',status:'secured'}),
+    I({h:'Foxie.way',area:'Thian Thalee Rama 2',dates:'13',ig:'https://www.instagram.com/foxie.way/',igF:'50.2K',status:'confirmed'}),
+    I({h:'Onlyaclairr',dates:'13',ig:'https://www.instagram.com/onlyaclairr',igF:'17.7K',tt:'https://www.tiktok.com/@onlyaclairr',ttF:'0.6K',status:'secured'}),
+    I({h:'J.anekit',dates:'9',ig:'https://www.instagram.com/j.anekit',igF:'23.8K',status:'confirmed'}),
+    I({h:'ผู้ใหญ่ต้อ สาวสอง',dates:'17-18-19',ig:'https://www.instagram.com/chertam.nat',igF:'1.6K',tt:'https://www.tiktok.com/@chertam1711',ttF:'123.2K',status:'secured'}),
+    I({h:'Offteerapat',dates:'13',ig:'https://www.instagram.com/offteerapat',igF:'10K',status:'secured'}),
+    I({h:'Dd_niramol',realName:'นิรมล ประยูรหงษ์',area:'BKK',dates:'19',ig:'https://www.instagram.com/dd_niramol',igF:'17.6K',tt:'https://www.tiktok.com/@puhyerin',ttF:'121.1K',status:'confirmed'}),
+    I({h:'ggift.knw',area:'BKK',ig:'https://www.instagram.com/ggift.knw',igF:'31.4K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'iaumm',area:'BKK',ig:'https://www.instagram.com/iaumm___',igF:'15.8K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'lyslynette',area:'BKK',ig:'https://www.instagram.com/lyslynette/',igF:'39.3K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'eeprisaa',area:'BKK',ig:'https://www.instagram.com/eeprisaa/',igF:'10.3K',status:'secured',note:'Wants to shoot next week'}),
+    I({h:'namtanstp',area:'BKK',ig:'https://www.instagram.com/namtanstp',igF:'11.3K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'suwaniya',area:'BKK',ig:'https://www.instagram.com/suwaniya/',igF:'12.9K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'bbewt',area:'BKK',ig:'https://www.instagram.com/bbewt/',igF:'16.1K',status:'secured',note:'Just had hydrobooster'}),
+    I({h:'mewyu.nikko',area:'BKK',ig:'https://www.instagram.com/mewyu.nikko/reels/',igF:'22.7K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'mycookiehouse',area:'BKK',ig:'https://www.instagram.com/mycookie.house_/',igF:'30K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'mamuaymaru',area:'BKK',ig:'https://www.instagram.com/mmuaymaru/reels/',igF:'96.7K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'memaima',area:'BKK',ig:'https://www.instagram.com/memaima/',igF:'22.9K',status:'secured',note:'Check clinic availability first'}),
+    I({h:'sssupisara__',area:'BKK',dates:'after June',ig:'https://www.instagram.com/sssupisara__/',igF:'32K',status:'candidate'}),
+    I({h:'noey__ai',ig:'https://www.instagram.com/noey__ai',igF:'20K',status:'candidate',note:'Prefers Jairak Clinic'}),
+    I({h:'puhyerin69',ig:'https://www.instagram.com/puhyerin69',igF:'6K',tt:'https://www.tiktok.com/@puhyerin',ttF:'121K',status:'candidate'}),
+    I({h:'prettyplaeng',ig:'https://www.instagram.com/plaeng_paeploy',igF:'151K',tt:'https://www.tiktok.com/@fungplaeng',ttF:'11.7K',status:'candidate',note:'Contacting · Jairak Clinic'}),
+    I({h:'Creammycm',ig:'https://www.instagram.com/lalinyarrat/',igF:'100K',tt:'https://www.tiktok.com/@lalinyarrat',ttF:'5.3K',status:'candidate'}),
+    I({h:'j.raiwin',ig:'https://www.instagram.com/j.raiwin',igF:'106K',tt:'https://www.tiktok.com/@j.raiwin',ttF:'4.7K',status:'candidate'}),
+    I({h:'kfpps_',ig:'https://www.instagram.com/kfpps_',igF:'26.3K',tt:'https://www.tiktok.com/@faholaf_',ttF:'23.6K',status:'candidate'}),
+    I({h:'xiaoars',ig:'https://www.instagram.com/xiaoars',igF:'6.4K',tt:'https://www.tiktok.com/@xiaozunn',ttF:'58K',status:'candidate'}),
+    I({h:'ambeamms',area:'Bangna / Bangkapi / Srinakarin',ig:'https://www.instagram.com/ambeamms',igF:'12.7K',tt:'https://www.tiktok.com/@punjamareview',ttF:'48.8K',status:'rejected'}),
+    I({h:'punanchittha',area:'Lat Phrao',dates:'1-5 / after 25',ig:'https://www.instagram.com/punanchittha/',igF:'22.9K',tt:'https://www.tiktok.com/@noey_ai',ttF:'5.7K',status:'candidate',note:'Eye surgery recovery ~12 days'}),
+    I({h:'Innetbook',area:'Pathum Thani / Rangsit',dates:'Jun 1',ig:'https://instagram.com/innetbook',igF:'16K',status:'candidate'}),
+    I({h:'miiwthny',ig:'https://www.instagram.com/miiwthny',igF:'22.3K',status:'candidate'}),
+    I({h:'bubblebeeee',ig:'https://www.instagram.com/bubblebeeee/',igF:'156K',status:'candidate'}),
+    I({h:'cherry.271',ig:'https://www.instagram.com/cherry.271',igF:'28K',status:'candidate'}),
+    I({h:'uxyam',ig:'https://instagram.com/uxyam',igF:'15.3K',status:'candidate'})
+  ];
+  inf.forEach((x,i)=>{x.id='i'+(i+1)});
+  const byH=h=>inf.find(x=>x.h===h).id;
+  const B=(h,c,d,t)=>({id:'b'+Math.random().toString(36).slice(2,8),infId:byH(h),clinicId:c,date:d,time:t||'',
+    stage:'confirmed',footageUrl:'',finalUrl:'',uploadDate:'',revisions:[]});
+  const bk=[
+    B('ningningsc','c2','2026-06-19','12:00'),
+    B('Senw.y','c1','2026-06-11','14:00'),
+    B('Perjidakarnn','c2','2026-06-19','12:00'),
+    B('baiiyook_','c2','2026-06-19','12:00'),
+    B('Bbillysr','c1','2026-06-12','15:00'),
+    B('Umimsaruu.u','c3','2026-06-11',''),
+    B('aya.official59','c3','2026-06-12',''),
+    B('dreamdrmm','c4','2026-06-10',''),
+    B('Superlinllyn','c1','2026-06-10','18:00'),
+    B('Foxie.way','c3','2026-06-13',''),
+    B('J.anekit','c4','2026-06-09',''),
+    B('Dd_niramol','c2','2026-06-19','12:00')
+  ];
+  return {influencers:inf,clinics:cl,bookings:bk};
+}
+
+/* ---------- storage ---------- */
+let DB=null;
+
+/* ============================================================
+   PERSISTENCE — works on Claude artifacts AND on Vercel/static.
+   Auto-detected backend:
+     • Claude artifact  -> window.storage (shared)
+     • Vercel default   -> localStorage   (free, but THIS DEVICE only)
+     • Vercel + sharing -> free cloud sync via JSONBin (all devices)
+   To turn on shared cloud sync after deploying to Vercel:
+     1) Go to https://jsonbin.io  ->  create a free account
+     2) Create a new bin with content:  {"data":null,"videos":{}}
+     3) Copy the Bin ID and your X-Master-Key
+     4) Fill CLOUD below and set enabled:true, then redeploy.
+   (Note: the key sits in client code, so use a private bin for a
+    small internal team. Uploaded video FILES may exceed the free
+    cloud size limit — prefer pasting Google Drive / YouTube links.)
+   ============================================================ */
+const CLOUD={ enabled:false, binId:'', key:'' };
+
+const Store={
+  mode:(typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function')?'claude'
+       :(CLOUD.enabled&&CLOUD.binId&&CLOUD.key)?'cloud':'local',
+  _cache:null,
+  async _get(){
+    const r=await fetch('https://api.jsonbin.io/v3/b/'+CLOUD.binId+'/latest',{headers:{'X-Master-Key':CLOUD.key}});
+    if(!r.ok)throw new Error('cloud get '+r.status);
+    const j=await r.json();return j.record||{data:null,videos:{}};
+  },
+  async _put(o){
+    const r=await fetch('https://api.jsonbin.io/v3/b/'+CLOUD.binId,{method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':CLOUD.key},body:JSON.stringify(o)});
+    if(!r.ok)throw new Error('cloud put '+r.status);
+  },
+  async getMain(){
+    if(this.mode==='claude'){try{const r=await window.storage.get(STORE_KEY,true);return r&&r.value?JSON.parse(r.value):null;}catch(e){return null;}}
+    if(this.mode==='cloud'){const c=await this._get();this._cache=c;return c.data||null;}
+    try{const v=localStorage.getItem(STORE_KEY);return v?JSON.parse(v):null;}catch(e){return null;}
+  },
+  async setMain(data){
+    if(this.mode==='claude'){try{await window.storage.set(STORE_KEY,JSON.stringify(data),true);}catch(e){}return;}
+    if(this.mode==='cloud'){const c=this._cache||await this._get();c.data=data;this._cache=c;await this._put(c);return;}
+    try{localStorage.setItem(STORE_KEY,JSON.stringify(data));}catch(e){}
+  },
+  async getVideo(bid){
+    if(this.mode==='claude'){try{const r=await window.storage.get('babyglow:video:'+bid,true);return r&&r.value?r.value:null;}catch(e){return null;}}
+    if(this.mode==='cloud'){const c=this._cache||await this._get();this._cache=c;return (c.videos&&c.videos[bid])||null;}
+    try{return localStorage.getItem('babyglow:video:'+bid);}catch(e){return null;}
+  },
+  async setVideo(bid,dataUrl){
+    if(this.mode==='claude'){await window.storage.set('babyglow:video:'+bid,dataUrl,true);return;}
+    if(this.mode==='cloud'){const c=this._cache||await this._get();c.videos=c.videos||{};c.videos[bid]=dataUrl;this._cache=c;await this._put(c);return;}
+    localStorage.setItem('babyglow:video:'+bid,dataUrl);
+  },
+  async delVideo(bid){
+    if(this.mode==='claude'){try{await window.storage.delete('babyglow:video:'+bid,true);}catch(e){}return;}
+    if(this.mode==='cloud'){const c=this._cache||await this._get();if(c.videos)delete c.videos[bid];this._cache=c;await this._put(c);return;}
+    try{localStorage.removeItem('babyglow:video:'+bid);}catch(e){}
+  }
+};
+
+async function loadData(){try{return await Store.getMain();}catch(e){return null;}}
+async function saveData(){try{await Store.setMain(DB);}catch(e){console.warn('save failed',e);}}
+async function reloadData(){
+  try{const fresh=await Store.getMain();if(fresh){DB=fresh;videoCache={};}}catch(e){}
+  render();toast(t('saved'));
+}
+
+/* ---------- app state ---------- */
+const state={role:null,lang:'en',tab:'influencers',filter:'all',schedView:'list',schedMonth:null,schedDay:null};
+function t(k){return (I18N[state.lang]&&I18N[state.lang][k])||I18N.en[k]||k;}
+function stageLabel(s){return (STAGE_LABEL[state.lang]||STAGE_LABEL.en)[s];}
+
+/* ---------- gate ---------- */
+function chooseRole(r){
+  if(r==='viewer'){enter('viewer');}
+  else{document.getElementById('pwWrap').classList.remove('hidden');document.getElementById('pwInput').focus();}
+}
+function tryAdmin(){
+  const v=document.getElementById('pwInput').value.trim();
+  if(v===ADMIN_PW){enter('admin');}
+  else{document.getElementById('pwErr').textContent='Incorrect password.';}
+}
+async function enter(role){
+  state.role=role;
+  if(role==='viewer'){state.lang='en';state.tab='rv_schedule';}
+  else{state.tab='influencers';}
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  if(!DB){const d=await loadData();DB=d||seed();await saveData();}
+  setupChrome();render();
+}
+function signOut(){
+  state.role=null;
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('gate').classList.remove('hidden');
+  document.getElementById('pwWrap').classList.add('hidden');
+  document.getElementById('pwInput').value='';document.getElementById('pwErr').textContent='';
+}
+function setLang(l){state.lang=l;setupChrome();render();}
+
+function setupChrome(){
+  const isAdmin=state.role==='admin';
+  const chip=document.getElementById('roleChip');
+  chip.className='chip '+(isAdmin?'admin':'viewer');
+  chip.textContent=isAdmin?'ADMIN':'REVIEWER';
+  const sm=document.getElementById('storeMode');
+  sm.textContent=t('mode_'+Store.mode);
+  sm.title=Store.mode==='local'?t('localNote'):'';
+  document.getElementById('langToggle').classList.toggle('hidden',!isAdmin);
+  document.getElementById('exportBtn').classList.toggle('hidden',!isAdmin);
+  document.getElementById('langEn').classList.toggle('on',state.lang==='en');
+  document.getElementById('langKo').classList.toggle('on',state.lang==='ko');
+  document.querySelectorAll('[data-t]').forEach(el=>el.textContent=t(el.getAttribute('data-t')));
+  // tabs
+  const tabs=document.getElementById('tabs');
+  if(isAdmin){
+    const defs=[['influencers','tab_influencers',DB.influencers.length],
+                ['clinics','tab_clinics',DB.clinics.length],
+                ['reviews','tab_reviews',DB.bookings.length],
+                ['track','tab_track',DB.bookings.length]];
+    tabs.innerHTML=defs.map(([k,lab,n])=>
+      `<button class="tab ${state.tab===k?'on':''}" onclick="setTab('${k}')">${t(lab)}<span class="count">${n}</span></button>`).join('');
+    tabs.classList.remove('hidden');
+  }else{
+    const defs=[['rv_schedule','tab_schedule'],['rv_stats','tab_stats'],['rv_influencers','tab_influencers'],['rv_clinics','tab_clinics']];
+    tabs.innerHTML=defs.map(([k,lab])=>
+      `<button class="tab ${state.tab===k?'on':''}" onclick="setTab('${k}')">${t(lab)}</button>`).join('');
+    tabs.classList.remove('hidden');
+  }
+}
+function setTab(k){state.tab=k;render();
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  setupChrome();}
+function setFilter(f){state.filter=f;render();}
+
+/* ---------- helpers ---------- */
+const AV=['#F4795B','#5B8DEF','#4FA97F','#E0A23B','#9B6BD9','#D9607A','#3FB6C2','#E37C5B'];
+function avColor(s){let h=0;for(let i=0;i<s.length;i++)h=s.charCodeAt(i)+((h<<5)-h);return AV[Math.abs(h)%AV.length];}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function inf(id){return DB.influencers.find(x=>x.id===id);}
+function clinic(id){return DB.clinics.find(x=>x.id===id);}
+function clinicLabel(id){const c=clinic(id);if(!c)return '—';return c.name+(c.branch?' · '+c.branch:'');}
+function avatar(x,size){
+  const s=size||46;
+  if(x.photoUrl)return `<div class="avatar" style="width:${s}px;height:${s}px"><img src="${esc(x.photoUrl)}" alt=""></div>`;
+  const init=(x.h||'?').replace(/[^A-Za-zก-๙ㄱ-힣]/,'').charAt(0).toUpperCase()||(x.h||'?').charAt(0).toUpperCase();
+  return `<div class="avatar" style="width:${s}px;height:${s}px;background:${avColor(x.h)}">${esc(init)}</div>`;
+}
+let videoCache={};
+function videoSrc(b){
+  if(b.footageType==='upload')return videoCache[b.id]||null;
+  if(b.footageUrl)return b.footageUrl;
+  return null;
+}
+function hasVideo(b){return !!videoSrc(b);}
+function videoEmbed(src){
+  if(!src)return '';
+  if(src.startsWith('data:'))return `<div class="vidwrap"><video class="vid" controls src="${esc(src)}"></video></div>`;
+  let m=src.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]+)/);
+  if(m)return `<div class="vidwrap"><iframe class="vidframe" src="https://www.youtube.com/embed/${m[1]}" allowfullscreen></iframe></div>`;
+  m=src.match(/\/file\/d\/([^/]+)/);
+  if(m)return `<div class="vidwrap"><iframe class="vidframe" src="https://drive.google.com/file/d/${m[1]}/preview" allow="autoplay" allowfullscreen></iframe></div>`;
+  if(/\.(mp4|webm|ogg|mov|m4v)(\?|$)/i.test(src))return `<div class="vidwrap"><video class="vid" controls src="${esc(src)}"></video></div>`;
+  return `<div class="vidwrap"><iframe class="vidframe" src="${esc(src)}" allowfullscreen></iframe></div>`;
+}
+async function loadVideos(){
+  for(const b of DB.bookings){
+    if(b.footageType==='upload'&&videoCache[b.id]===undefined){
+      videoCache[b.id]=await Store.getVideo(b.id);
+    }
+  }
+}
+async function handleVideoUpload(bid,input){
+  const f=input.files&&input.files[0];if(!f)return;
+  const MAX=3.5*1024*1024;
+  if(f.size>MAX){alert(t('videoTooLarge'));input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=async()=>{
+    const dataUrl=reader.result;
+    const b=DB.bookings.find(x=>x.id===bid);if(!b)return;
+    try{await Store.setVideo(bid,dataUrl);}catch(e){alert(t('videoTooLarge'));return;}
+    videoCache[bid]=dataUrl;
+    b.footageType='upload';b.footageUrl='';b.footageName=f.name;
+    if(STAGES.indexOf(b.stage)<STAGES.indexOf('footage'))b.stage='footage';
+    await saveData();render();toast(t('saved'));
+  };
+  reader.readAsDataURL(f);
+}
+async function setVideoLink(bid,url){
+  const b=DB.bookings.find(x=>x.id===bid);if(!b)return;
+  url=(url||'').trim();if(!url)return;
+  b.footageUrl=url;b.footageType='link';b.footageName='';
+  videoCache[bid]=null;
+  try{await Store.delVideo(bid);}catch(e){}
+  if(STAGES.indexOf(b.stage)<STAGES.indexOf('footage'))b.stage='footage';
+  await saveData();render();toast(t('saved'));
+}
+async function removeVideo(bid){
+  const b=DB.bookings.find(x=>x.id===bid);if(!b)return;
+  b.footageUrl='';b.footageType='';b.footageName='';
+  videoCache[bid]=null;
+  try{await Store.delVideo(bid);}catch(e){}
+  await saveData();render();
+}
+
+/* ---------- render dispatch ---------- */
+async function render(){
+  await loadVideos();
+  if(state.role==='viewer'){renderViewer();return;}
+  const v=document.getElementById('view');
+  let html='';
+  if(state.tab==='influencers')html=viewInfluencers();
+  else if(state.tab==='clinics')html=viewClinics();
+  else if(state.tab==='reviews')html=viewReviews();
+  else if(state.tab==='track')html=viewTrack();
+  if(Store.mode==='local')html=`<div class="note-bar">⚠ <span>${t('localNote')}</span></div>`+html;
+  v.innerHTML=html;
+}
+
+/* ---------- INFLUENCERS ---------- */
+function viewInfluencers(){
+  const counts={all:DB.influencers.length,confirmed:0,secured:0,candidate:0,rejected:0};
+  DB.influencers.forEach(x=>counts[x.status]++);
+  const f=state.filter;
+  const list=DB.influencers.filter(x=>f==='all'||x.status===f);
+  const pills=[['all','fAll'],['confirmed','fConfirmed'],['secured','fSecured'],['candidate','fCandidate'],['rejected','fRejected']];
+  return `
+  <div class="sec-head">
+    <div><h2>${t('inf_title')}</h2><p>${t('inf_sub')}</p></div>
+    <div class="sec-actions"><button class="btn-primary" onclick="openInfluencerModal()">${t('addInfluencer')}</button></div>
+  </div>
+  <div class="filters">${pills.map(([k,lab])=>
+    `<button class="fpill ${f===k?'on':''}" onclick="setFilter('${k}')">${t(lab)} <span style="opacity:.6">${counts[k]}</span></button>`).join('')}</div>
+  <div class="grid">${list.map(infCard).join('')}</div>`;
+}
+function infCard(x){
+  const socials=[];
+  if(x.ig)socials.push(`<a class="soc" href="${esc(x.ig)}" target="_blank" rel="noopener"><span class="lbl">${t('ig')}</span>${esc(x.igF||'—')}</a>`);
+  if(x.tt)socials.push(`<a class="soc" href="${esc(x.tt)}" target="_blank" rel="noopener"><span class="lbl">${t('tt')}</span>${esc(x.ttF||'—')}</a>`);
+  const meta=[];
+  if(x.area)meta.push(`<div><b>${t('area')}:</b> ${esc(x.area)}</div>`);
+  if(x.dates)meta.push(`<div><b>${t('dates')}:</b> ${esc(x.dates)}</div>`);
+  if(x.note)meta.push(`<div style="color:var(--warn)">✎ ${esc(x.note)}</div>`);
+  return `<div class="icard">
+    <span class="statustag st-${x.status}">${t('f'+x.status.charAt(0).toUpperCase()+x.status.slice(1))}</span>
+    <div class="icard-top">${avatar(x)}
+      <div><div class="handle">${esc(x.h)}</div>${x.realName?`<div class="rname">${esc(x.realName)}</div>`:''}</div>
+    </div>
+    ${socials.length?`<div class="socials">${socials.join('')}</div>`:''}
+    ${meta.length?`<div class="icard-meta">${meta.join('')}</div>`:''}
+    <div class="icard-actions">
+      <button class="mini" onclick="openInfluencerModal('${x.id}')">${t('edit')}</button>
+      ${x.status!=='confirmed'?`<button class="mini solid" onclick="openBookingModal(null,'${x.id}')">${t('confirm')}</button>`:''}
+      <button class="mini" onclick="delInfluencer('${x.id}')">${t('del')}</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- CLINICS ---------- */
+function viewClinics(){
+  return `
+  <div class="sec-head">
+    <div><h2>${t('clinic_title')}</h2><p>${t('clinic_sub')}</p></div>
+    <div class="sec-actions"><button class="btn-primary" onclick="openClinicModal()">${t('addClinic')}</button></div>
+  </div>
+  ${DB.clinics.length?`<div class="grid">${DB.clinics.map(clinicCard).join('')}</div>`:
+    `<div class="empty"><span class="ic">🏥</span><div class="t">${t('noClinics')}</div></div>`}`;
+}
+function clinicCard(c){
+  const n=DB.bookings.filter(b=>b.clinicId===c.id).length;
+  return `<div class="clinic-card">
+    <div class="cname">${esc(c.name)}</div>
+    ${c.branch?`<div class="cbranch">${esc(c.branch)}</div>`:''}
+    <div class="cbookings">${n} ${n===1?'review':'reviews'} booked</div>
+    ${c.mapUrl?`<a href="${esc(c.mapUrl)}" target="_blank" rel="noopener" style="font-size:13px;font-weight:600">📍 ${t('map')}</a>`:''}
+    <div class="row-end">
+      <button class="mini" onclick="openClinicModal('${c.id}')">${t('edit')}</button>
+      <button class="mini" onclick="delClinic('${c.id}')">${t('del')}</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- REVIEWS (confirmed list) ---------- */
+function viewReviews(){
+  const sorted=[...DB.bookings].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  return `
+  <div class="sec-head">
+    <div><h2>${t('rev_title')}</h2><p>${t('rev_sub')}</p></div>
+    <div class="sec-actions"><button class="btn-primary" onclick="openBookingModal()">${t('confirmReview')}</button></div>
+  </div>
+  ${sorted.length?sorted.map(reviewRow).join(''):
+    `<div class="empty"><span class="ic">🗓️</span><div class="t">${t('noBookings')}</div><div>${t('noBookingsSub')}</div></div>`}`;
+}
+function reviewRow(b){
+  const x=inf(b.infId)||{h:'?'};
+  const idx=STAGES.indexOf(b.stage);
+  return `<div class="bcard">
+    <div class="bcard-head">
+      ${avatar(x,40)}
+      <div class="who"><div class="h">${esc(x.h)}</div><div class="s">${x.realName?esc(x.realName)+' · ':''}${clinicLabel(b.clinicId)}</div></div>
+      <div class="binfo">
+        <div class="it"><span class="k">${t('date')}</span><span class="v">${esc(b.date||'—')}</span></div>
+        <div class="it"><span class="k">${t('time')}</span><span class="v">${esc(b.time||t('unscheduled'))}</span></div>
+        <div class="it"><span class="k">${t('status')}</span><span class="v" style="color:${idx>=6?'var(--green)':'var(--coral-deep)'}">${stageLabel(b.stage)}</span></div>
+      </div>
+      <button class="mini" onclick="openBookingModal('${b.id}')">${t('edit')}</button>
+      <button class="mini" onclick="delBooking('${b.id}')">${t('del')}</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- STATUS TRACKING ---------- */
+function viewTrack(){
+  const sorted=[...DB.bookings].sort((a,b)=>STAGES.indexOf(a.stage)-STAGES.indexOf(b.stage));
+  return `
+  <div class="sec-head"><div><h2>${t('track_title')}</h2><p>${t('track_sub')}</p></div></div>
+  ${sorted.length?sorted.map(trackCard).join(''):
+    `<div class="empty"><span class="ic">📈</span><div class="t">${t('noBookings')}</div></div>`}`;
+}
+function trackCard(b){
+  const x=inf(b.infId)||{h:'?'};
+  const idx=STAGES.indexOf(b.stage);
+  const steps=STAGES.map((s,i)=>{
+    const cls=i<idx?'done':(i===idx?'cur':'');
+    return `<div class="step ${cls}"><span class="dot"></span><span class="lab">${stageLabel(s)}</span></div>`;
+  }).join('');
+  // workflow buttons depend on current stage
+  let wf='';
+  const adv=(stage,label)=>`<button class="mini solid" onclick="setStage('${b.id}','${stage}')">${label}</button>`;
+  if(b.stage==='confirmed')wf=adv('visited',t('markVisit'));
+  else if(b.stage==='visited')wf=adv('filmed',t('markFilmed'));
+  else if(b.stage==='filmed')wf=adv('footage',t('footageUrl'));
+  else if(b.stage==='footage')wf=adv('approved',t('approveUpload'));
+  else if(b.stage==='approved')wf=adv('ready',t('markReady'));
+  else if(b.stage==='ready')wf=adv('uploaded',t('markUploaded'));
+  // revisions
+  const revs=(b.revisions||[]).map(r=>`
+    <div class="rev-msg ${r.by}">
+      <div class="meta"><span>${r.by==='viewer'?t('by_viewer'):t('by_admin')} · ${esc(r.at)}</span>
+        ${r.resolved?`<span class="resolved">✓ ${t('resolved')}</span>`:
+          `<button class="mini" style="padding:2px 7px" onclick="resolveRev('${b.id}','${r.id}')">${t('resolveRev')}</button>`}</div>
+      ${esc(r.text)}
+    </div>`).join('');
+
+  return `<div class="bcard">
+    <div class="bcard-head">
+      ${avatar(x,40)}
+      <div class="who"><div class="h">${esc(x.h)}</div><div class="s">${clinicLabel(b.clinicId)} · ${esc(b.date||'—')} ${esc(b.time||'')}</div></div>
+    </div>
+    <div class="stepper">${steps}</div>
+    <div class="wf-actions">${wf}
+      ${idx>0?`<button class="mini" onclick="setStage('${b.id}','${STAGES[idx-1]}')">← ${stageLabel(STAGES[idx-1])}</button>`:''}
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">${t('firstCutVideo')}</div>
+    ${hasVideo(b)?videoEmbed(videoSrc(b)):''}
+    <div class="uploadrow">
+      <label class="mini solid filebtn">${t('uploadVideoBtn')}<input type="file" accept="video/*" onchange="handleVideoUpload('${b.id}',this)"></label>
+      <span style="font-size:12px;color:var(--muted)">${t('orLink')}</span>
+      ${hasVideo(b)?`<button class="mini" onclick="removeVideo('${b.id}')">${t('removeVideo')}</button>`:''}
+    </div>
+    <div class="field-row" style="margin-top:8px">
+      <input id="fu_${b.id}" value="${esc(b.footageType==='link'?b.footageUrl:'')}" placeholder="https://drive.google.com/… · youtube.com/… · …mp4">
+      <button class="mini" onclick="setVideoLink('${b.id}',document.getElementById('fu_${b.id}').value)">${t('save')}</button>
+    </div>
+    <div class="field-row"><label>${t('finalUrl')}</label>
+      <input id="vu_${b.id}" value="${esc(b.finalUrl)}" placeholder="https://…">
+      <button class="mini" onclick="saveBookingField('${b.id}','finalUrl',document.getElementById('vu_${b.id}').value)">${t('save')}</button>
+    </div>
+    <div class="field-row"><label>${t('uploadDate')}</label>
+      <input id="ud_${b.id}" type="date" value="${esc(b.uploadDate)}" style="max-width:180px">
+      <button class="mini" onclick="saveBookingField('${b.id}','uploadDate',document.getElementById('ud_${b.id}').value)">${t('save')}</button>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">${t('revisions')} (${(b.revisions||[]).length})</div>
+    <div class="rev-thread">${revs||'<div style="font-size:13px;color:var(--muted)">—</div>'}</div>
+    <div class="field-row">
+      <input id="rv_${b.id}" placeholder="${t('revPlaceholder')}">
+      <button class="mini solid" onclick="addRevision('${b.id}','admin',document.getElementById('rv_${b.id}').value)">${t('reqRevision')}</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- VIEWER (reviewer) ---------- */
+function renderViewer(){
+  const v=document.getElementById('view');
+  if(state.tab==='rv_clinics')v.innerHTML=viewerClinics();
+  else if(state.tab==='rv_influencers')v.innerHTML=viewerInfluencers();
+  else if(state.tab==='rv_schedule')v.innerHTML=viewerSchedule();
+  else v.innerHTML=viewerStats();
+}
+function computeStats(){
+  const secured=DB.influencers.filter(x=>x.status==='confirmed'||x.status==='secured').length;
+  const bks=DB.bookings;
+  const fi=s=>STAGES.indexOf(s);
+  const confirmed=bks.length;
+  const scheduled=bks.filter(b=>!!b.date).length;
+  const visited=bks.filter(b=>fi(b.stage)>=fi('visited')).length;
+  const video=bks.filter(b=>!!videoSrc(b)||fi(b.stage)>=fi('footage')).length;
+  const uploaded=bks.filter(b=>b.stage==='uploaded').length;
+  let openRev=0,totalRev=0;
+  bks.forEach(b=>(b.revisions||[]).forEach(r=>{totalRev++;if(!r.resolved)openRev++;}));
+  return {secured,confirmed,scheduled,visited,video,uploaded,openRev,totalRev};
+}
+function viewerStats(){
+  const s=computeStats();
+  const cards=[
+    ['Secured influencers',s.secured,'var(--coral-deep)'],
+    ['Confirmed reviews',s.confirmed,'var(--ink)'],
+    ['Visit completed',s.visited,'var(--green)'],
+    ['Video received',s.video,'var(--blue)'],
+    ['Uploaded',s.uploaded,'var(--green)'],
+    ['Open revisions',s.openRev,'var(--rose)']
+  ];
+  const base=Math.max(s.secured,s.confirmed,1);
+  const funnel=[
+    ['Secured influencers',s.secured],
+    ['Clinic visit confirmed',s.scheduled],
+    ['Visit completed',s.visited],
+    ['First-cut video received',s.video],
+    ['Uploaded',s.uploaded]
+  ];
+  const clinics=DB.clinics.map(c=>{
+    const cb=DB.bookings.filter(b=>b.clinicId===c.id);
+    return {name:c.name,booked:cb.length,visited:cb.filter(b=>STAGES.indexOf(b.stage)>=STAGES.indexOf('visited')).length,
+      uploaded:cb.filter(b=>b.stage==='uploaded').length};
+  }).filter(c=>c.booked>0);
+  return `
+  <div class="viewer-intro"><h2>Campaign overview</h2><p>Live progress across every secured influencer and clinic.</p></div>
+  <div class="stat-grid">${cards.map(([l,n,c])=>
+    `<div class="stat-card"><div class="stat-n" style="color:${c}">${n}</div><div class="stat-l">${l}</div></div>`).join('')}</div>
+  <div class="panel"><h3 class="panel-h">Progress funnel</h3>
+    ${funnel.map(([l,n])=>{const pct=Math.round(n/base*100);return `
+      <div class="funnel-row"><div class="funnel-lab">${l}</div>
+        <div class="funnel-track"><div class="funnel-fill" style="width:${Math.max(pct,4)}%">${n}</div></div></div>`;}).join('')}
+  </div>
+  ${clinics.length?`<div class="panel"><h3 class="panel-h">By clinic</h3>
+    <table class="stat-table"><thead><tr><th>Clinic</th><th>Booked</th><th>Visited</th><th>Uploaded</th></tr></thead>
+    <tbody>${clinics.map(c=>`<tr><td>${esc(c.name)}</td><td>${c.booked}</td><td>${c.visited}</td><td>${c.uploaded}</td></tr>`).join('')}</tbody></table>
+  </div>`:''}`;
+}
+function infCardRO(x){
+  const socials=[];
+  if(x.ig)socials.push(`<a class="soc" href="${esc(x.ig)}" target="_blank" rel="noopener"><span class="lbl">IG</span>${esc(x.igF||'—')}</a>`);
+  if(x.tt)socials.push(`<a class="soc" href="${esc(x.tt)}" target="_blank" rel="noopener"><span class="lbl">TikTok</span>${esc(x.ttF||'—')}</a>`);
+  const meta=[];
+  if(x.area)meta.push(`<div><b>Area:</b> ${esc(x.area)}</div>`);
+  if(x.dates)meta.push(`<div><b>Available:</b> ${esc(x.dates)}</div>`);
+  const lbl=x.status==='confirmed'?'Confirmed':'Secured';
+  return `<div class="icard">
+    <span class="statustag st-${x.status}">${lbl}</span>
+    <div class="icard-top">${avatar(x)}
+      <div><div class="handle">${esc(x.h)}</div>${x.realName?`<div class="rname">${esc(x.realName)}</div>`:''}</div></div>
+    ${socials.length?`<div class="socials">${socials.join('')}</div>`:''}
+    ${meta.length?`<div class="icard-meta">${meta.join('')}</div>`:''}
+  </div>`;
+}
+function clinicCardRO(c){
+  const n=DB.bookings.filter(b=>b.clinicId===c.id).length;
+  return `<div class="clinic-card">
+    <div class="cname">${esc(c.name)}</div>
+    ${c.branch?`<div class="cbranch">${esc(c.branch)}</div>`:''}
+    <div class="cbookings">${n} ${n===1?'review':'reviews'} booked</div>
+    ${c.mapUrl?`<a href="${esc(c.mapUrl)}" target="_blank" rel="noopener" style="font-size:13px;font-weight:600">📍 Map</a>`:''}
+  </div>`;
+}
+function viewerInfluencers(){
+  const list=DB.influencers.filter(x=>x.status==='confirmed'||x.status==='secured')
+    .sort((a,b)=>(a.status==='confirmed'?0:1)-(b.status==='confirmed'?0:1));
+  return `<div class="viewer-intro"><h2>Secured influencers</h2><p>Creators confirmed or secured for the babyGLOW campaign.</p></div>
+    <div class="grid">${list.map(infCardRO).join('')}</div>`;
+}
+function viewerClinics(){
+  return `<div class="viewer-intro"><h2>Secured clinics</h2><p>Partner clinics hosting the babyGLOW reviews.</p></div>
+    ${DB.clinics.length?`<div class="grid">${DB.clinics.map(clinicCardRO).join('')}</div>`:
+      `<div class="empty"><span class="ic">🏥</span><div class="t">No clinics yet</div></div>`}`;
+}
+const CAL_DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const CAL_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function setSchedView(v){state.schedView=v;render();}
+function shiftSchedMonth(delta){
+  const ym=state.schedMonth||new Date().toISOString().slice(0,7);
+  const [Y,M]=ym.split('-').map(Number);
+  const d=new Date(Y,M-1+delta,1);
+  state.schedMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  state.schedDay=null;render();
+}
+function selectSchedDay(date){state.schedDay=(state.schedDay===date?null:date);render();}
+function viewerSchedule(){
+  const sorted=[...DB.bookings].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const intro=`<div class="viewer-intro"><h2>Confirmed schedule</h2><p>Visit dates, progress, first-cut videos and revision requests — all in one place.</p></div>`;
+  const toggle=`<div class="sched-toggle">
+    <button class="fpill ${state.schedView!=='calendar'?'on':''}" onclick="setSchedView('list')">List</button>
+    <button class="fpill ${state.schedView==='calendar'?'on':''}" onclick="setSchedView('calendar')">Calendar</button>
+  </div>`;
+  if(state.schedView==='calendar')return intro+toggle+viewerCalendar();
+  return intro+toggle+(sorted.length?sorted.map(viewerScheduleCard).join(''):
+      `<div class="empty"><span class="ic">🗓️</span><div class="t">No confirmed reviews yet</div></div>`);
+}
+function viewerCalendar(){
+  const bookings=DB.bookings.filter(b=>b.date);
+  let ym=state.schedMonth;
+  if(!ym){
+    const ds=bookings.map(b=>b.date).sort();
+    ym=ds.length?ds[0].slice(0,7):new Date().toISOString().slice(0,7);
+    state.schedMonth=ym;
+  }
+  const [Y,M]=ym.split('-').map(Number);
+  const startDow=new Date(Y,M-1,1).getDay();
+  const daysInMonth=new Date(Y,M,0).getDate();
+  const todayStr=new Date().toISOString().slice(0,10);
+  const byDay={};
+  bookings.forEach(b=>{if(b.date.slice(0,7)===ym)(byDay[b.date]=byDay[b.date]||[]).push(b);});
+  let cells='';
+  for(let i=0;i<startDow;i++)cells+=`<div class="cal-cell empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=ym+'-'+String(d).padStart(2,'0');
+    const items=byDay[ds]||[];
+    const sel=state.schedDay===ds?'sel':'';
+    const today=ds===todayStr?'today':'';
+    const has=items.length?'has':'';
+    let chips='';
+    items.slice(0,3).forEach(b=>{
+      const x=inf(b.infId)||{h:'?'};
+      const upl=b.stage==='uploaded'?'upl':'';
+      chips+=`<div class="cal-chip ${upl}">${esc(x.h)}${b.time?' '+esc(b.time):''}</div>`;
+    });
+    if(items.length>3)chips+=`<div class="cal-more">+${items.length-3} more</div>`;
+    cells+=`<div class="cal-cell ${has} ${sel} ${today}" ${items.length?`onclick="selectSchedDay('${ds}')"`:''}>
+      <span class="cal-num">${d}</span>${chips}</div>`;
+  }
+  const dowRow=CAL_DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  let detail='';
+  if(state.schedDay&&byDay[state.schedDay]){
+    const dt=new Date(state.schedDay+'T00:00:00');
+    const lbl=CAL_DOW[dt.getDay()]+', '+CAL_MONTHS[dt.getMonth()]+' '+dt.getDate();
+    detail=`<div style="margin-top:6px"><div style="font-size:13px;font-weight:700;color:var(--ink);margin:4px 0 12px">${lbl}</div>
+      ${byDay[state.schedDay].map(viewerScheduleCard).join('')}</div>`;
+  }
+  return `<div class="cal-wrap">
+    <div class="cal-head">
+      <div class="cal-title">${CAL_MONTHS[M-1]} ${Y}</div>
+      <div class="cal-nav">
+        <button class="mini" onclick="shiftSchedMonth(-1)">←</button>
+        <button class="mini" onclick="shiftSchedMonth(1)">→</button>
+      </div>
+    </div>
+    <div class="cal-grid">${dowRow}${cells}</div>
+    ${bookings.length?'<div style="font-size:11.5px;color:var(--muted);margin-top:12px">Tap a day to see its reviews.</div>':'<div style="font-size:12.5px;color:var(--muted);margin-top:10px">No confirmed reviews yet.</div>'}
+  </div>${detail}`;
+}
+function viewerScheduleCard(b){
+  const x=inf(b.infId)||{h:'?'};
+  const idx=STAGES.indexOf(b.stage);
+  const visited=idx>=STAGES.indexOf('visited');
+  const src=videoSrc(b);
+  const cut=!!src||idx>=STAGES.indexOf('footage');
+  const uploaded=b.stage==='uploaded';
+  const revs=(b.revisions||[]).map(r=>`
+    <div class="rev-msg ${r.by}">
+      <div class="meta"><span>${r.by==='viewer'?'You':'Team'} · ${esc(r.at)}</span>
+        ${r.resolved?`<span class="resolved">✓ Resolved</span>`:''}</div>
+      ${esc(r.text)}</div>`).join('');
+  return `<div class="bcard">
+    <div class="bcard-head">${avatar(x,40)}
+      <div class="who"><div class="h">${esc(x.h)}</div><div class="s">${clinicLabel(b.clinicId)}</div></div>
+    </div>
+    <div style="margin-top:6px">
+      <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Clinic visit <em>${esc(b.date||'TBD')}${b.time?' · '+esc(b.time):''}</em></span></div>
+      <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Visit completed</span></div>
+      <div class="ms ${cut?'on':''}"><span class="msdot">${cut?'✓':''}</span><span class="mslab">First-cut video received</span></div>
+      <div class="ms ${uploaded?'on':''}"><span class="msdot">${uploaded?'✓':''}</span><span class="mslab">Uploaded${uploaded&&b.uploadDate?` <em>${esc(b.uploadDate)}</em>`:''}</span></div>
+    </div>
+    ${src?videoEmbed(src):`<div class="no-video">First-cut video not delivered yet.</div>`}
+    ${src?`
+      <div class="divider"></div>
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">Revision requests</div>
+      <div class="rev-thread">${revs||'<div style="font-size:13px;color:var(--muted)">No requests yet.</div>'}</div>
+      ${uploaded?'<div style="font-size:12.5px;color:var(--green);font-weight:600;margin-top:4px">This video is live — revisions are closed.</div>':`<div class="field-row">
+        <input id="rev_${b.id}" placeholder="Describe the change you need…">
+        <button class="mini solid" onclick="addRevision('${b.id}','viewer',document.getElementById('rev_${b.id}').value)">Send request</button>
+      </div>`}`:''}
+  </div>`;
+}
+
+/* ============================================================
+   MUTATIONS
+   ============================================================ */
+function uid(p){return p+Math.random().toString(36).slice(2,8);}
+
+async function setStage(id,stage){
+  const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  b.stage=stage;
+  if(stage==='uploaded'&&!b.uploadDate)b.uploadDate=new Date().toISOString().slice(0,10);
+  // sync influencer status to confirmed
+  const x=inf(b.infId);if(x)x.status='confirmed';
+  await saveData();render();toast(t('saved'));
+}
+async function saveBookingField(id,field,val){
+  const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  b[field]=val.trim();
+  await saveData();render();toast(t('saved'));
+}
+async function addRevision(id,by,text){
+  if(!text||!text.trim()){return;}
+  // reload latest first to reduce overwrite of concurrent edits
+  try{const fresh=await Store.getMain();if(fresh)DB=fresh;}catch(e){}
+  const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  if(!b.revisions)b.revisions=[];
+  b.revisions.push({id:uid('r'),by,text:text.trim(),at:new Date().toISOString().slice(0,16).replace('T',' '),resolved:false});
+  await saveData();render();toast(t('saved'));
+}
+async function resolveRev(bid,rid){
+  const b=DB.bookings.find(x=>x.id===bid);if(!b)return;
+  const r=b.revisions.find(x=>x.id===rid);if(r){r.resolved=true;r.resolvedAt=new Date().toISOString().slice(0,10);}
+  await saveData();render();toast(t('saved'));
+}
+async function delInfluencer(id){
+  if(!confirm(t('deleteConfirm')))return;
+  DB.influencers=DB.influencers.filter(x=>x.id!==id);
+  DB.bookings=DB.bookings.filter(b=>b.infId!==id);
+  await saveData();render();
+}
+async function delClinic(id){
+  if(!confirm(t('deleteConfirm')))return;
+  DB.clinics=DB.clinics.filter(x=>x.id!==id);
+  await saveData();render();
+}
+async function delBooking(id){
+  if(!confirm(t('deleteConfirm')))return;
+  DB.bookings=DB.bookings.filter(x=>x.id!==id);
+  await saveData();render();
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function closeModal(){document.getElementById('modalRoot').innerHTML='';}
+function modalShell(title,bodyHtml,footHtml){
+  document.getElementById('modalRoot').innerHTML=`
+  <div class="modal-back" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="modal-head"><h3>${title}</h3><button class="x" onclick="closeModal()">×</button></div>
+      <div class="modal-body">${bodyHtml}</div>
+      <div class="modal-foot">${footHtml}</div>
+    </div>
+  </div>`;
+}
+function fld(id,label,val,ph,type){return `<div class="field"><label>${label}</label>
+  <input id="${id}" type="${type||'text'}" value="${esc(val||'')}" placeholder="${esc(ph||'')}"></div>`;}
+
+function openInfluencerModal(id){
+  const x=id?inf(id):null;
+  const statusOpts=['confirmed','secured','candidate','rejected'].map(s=>
+    `<option value="${s}" ${x&&x.status===s?'selected':''}>${t('f'+s.charAt(0).toUpperCase()+s.slice(1))}</option>`).join('');
+  const body=`<div class="form-grid">
+    ${fld('m_h',t('handle'),x&&x.h,'@handle')}
+    ${fld('m_rn',t('realName'),x&&x.realName)}
+    ${fld('m_ig',t('ig')+' URL',x&&x.ig,'https://instagram.com/…')}
+    ${fld('m_igf',t('ig')+' '+t('followers'),x&&x.igF,'e.g. 27K')}
+    ${fld('m_tt',t('tt')+' URL',x&&x.tt,'https://tiktok.com/@…')}
+    ${fld('m_ttf',t('tt')+' '+t('followers'),x&&x.ttF,'e.g. 50K')}
+    ${fld('m_area',t('area'),x&&x.area)}
+    ${fld('m_dates',t('dates'),x&&x.dates)}
+    <div class="field"><label>${t('status')}</label><select id="m_status">${statusOpts}</select></div>
+    ${fld('m_photo',t('photoUrl'),x&&x.photoUrl,'https://…')}
+    <div class="field full">${fld('m_note',t('note'),x&&x.note)}</div>
+  </div>`;
+  modalShell(id?t('edit'):t('addInfluencer'),body,
+    `<button class="btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+     <button class="btn-primary" onclick="saveInfluencer('${id||''}')">${t('save')}</button>`);
+}
+async function saveInfluencer(id){
+  const g=k=>document.getElementById(k).value.trim();
+  const h=g('m_h');if(!h){toast(t('handle')+' ?');return;}
+  const data={h,realName:g('m_rn'),ig:g('m_ig'),igF:g('m_igf'),tt:g('m_tt'),ttF:g('m_ttf'),
+    area:g('m_area'),dates:g('m_dates'),status:document.getElementById('m_status').value,
+    photoUrl:g('m_photo'),note:g('m_note')};
+  if(id){Object.assign(inf(id),data);}
+  else{DB.influencers.push(Object.assign({id:uid('i')},data));}
+  await saveData();closeModal();render();toast(t('saved'));
+}
+
+function openClinicModal(id){
+  const c=id?clinic(id):null;
+  const body=`<div class="form-grid">
+    ${fld('c_name',t('clinic'),c&&c.name)}
+    ${fld('c_branch',t('branch'),c&&c.branch)}
+    <div class="field full">${fld('c_map',t('mapUrl'),c&&c.mapUrl,'https://maps.app.goo.gl/…')}</div>
+  </div>`;
+  modalShell(id?t('edit'):t('addClinic'),body,
+    `<button class="btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+     <button class="btn-primary" onclick="saveClinic('${id||''}')">${t('save')}</button>`);
+}
+async function saveClinic(id){
+  const g=k=>document.getElementById(k).value.trim();
+  const name=g('c_name');if(!name){toast(t('clinic')+' ?');return;}
+  const data={name,branch:g('c_branch'),mapUrl:g('c_map')};
+  if(id){Object.assign(clinic(id),data);}
+  else{DB.clinics.push(Object.assign({id:uid('c')},data));}
+  await saveData();closeModal();render();toast(t('saved'));
+}
+
+function openBookingModal(id,presetInf){
+  const b=id?DB.bookings.find(x=>x.id===id):null;
+  const infOpts=DB.influencers.map(x=>
+    `<option value="${x.id}" ${(b&&b.infId===x.id)||(presetInf===x.id)?'selected':''}>${esc(x.h)}${x.realName?' ('+esc(x.realName)+')':''}</option>`).join('');
+  const clinicOpts=DB.clinics.map(c=>
+    `<option value="${c.id}" ${b&&b.clinicId===c.id?'selected':''}>${esc(c.name)}${c.branch?' · '+esc(c.branch):''}</option>`).join('');
+  const body=`<div class="form-grid">
+    <div class="field full"><label>${t('pickInfluencer')}</label><select id="b_inf"><option value="">${t('selectInfluencer')}</option>${infOpts}</select></div>
+    <div class="field full"><label>${t('clinic')}</label><select id="b_clinic"><option value="">${t('selectClinic')}</option>${clinicOpts}</select></div>
+    ${fld('b_date',t('date'),b&&b.date,'','date')}
+    ${fld('b_time',t('time'),b&&b.time,'e.g. 14:00')}
+  </div>`;
+  modalShell(id?t('edit'):t('confirmReview'),body,
+    `<button class="btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+     <button class="btn-primary" onclick="saveBooking('${id||''}')">${t('confirm')}</button>`);
+}
+async function saveBooking(id){
+  const infId=document.getElementById('b_inf').value;
+  const clinicId=document.getElementById('b_clinic').value;
+  const date=document.getElementById('b_date').value;
+  const time=document.getElementById('b_time').value.trim();
+  if(!infId){toast(t('selectInfluencer'));return;}
+  if(id){const b=DB.bookings.find(x=>x.id===id);Object.assign(b,{infId,clinicId,date,time});}
+  else{DB.bookings.push({id:uid('b'),infId,clinicId,date,time,stage:'confirmed',footageUrl:'',finalUrl:'',uploadDate:'',revisions:[]});}
+  const x=inf(infId);if(x)x.status='confirmed';
+  await saveData();closeModal();state.tab='reviews';setupChrome();render();toast(t('saved'));
+}
+
+/* ============================================================
+   EXCEL EXPORT
+   ============================================================ */
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const infRows=DB.influencers.map(x=>({
+    Handle:x.h,'Real name':x.realName,Status:x.status,Area:x.area,Available:x.dates,
+    Instagram:x.ig,'IG followers':x.igF,TikTok:x.tt,'TT followers':x.ttF,Note:x.note
+  }));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(infRows),'Influencers');
+  const clRows=DB.clinics.map(c=>{
+    const n=DB.bookings.filter(b=>b.clinicId===c.id).length;
+    return {Clinic:c.name,Branch:c.branch,'Map URL':c.mapUrl,'Reviews booked':n};
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(clRows),'Clinics');
+  const bkRows=DB.bookings.map(b=>{
+    const x=inf(b.infId)||{};
+    return {Influencer:x.h||'',Clinic:clinicLabel(b.clinicId),Date:b.date,Time:b.time,
+      Stage:STAGE_LABEL.en[b.stage],'Footage link':b.footageUrl,'Uploaded link':b.finalUrl,
+      'Upload date':b.uploadDate,'Open revisions':(b.revisions||[]).filter(r=>!r.resolved).length,
+      'Total revisions':(b.revisions||[]).length};
+  });
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkRows),'Reviews');
+  const revRows=[];
+  DB.bookings.forEach(b=>{const x=inf(b.infId)||{};(b.revisions||[]).forEach(r=>{
+    revRows.push({Influencer:x.h||'',Clinic:clinicLabel(b.clinicId),From:r.by,Request:r.text,
+      Date:r.at,Resolved:r.resolved?'Yes':'No'});});});
+  if(revRows.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(revRows),'Revisions');
+  XLSX.writeFile(wb,'babyGLOW_Campaign_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),1800);
+}
+</script>
+</body>
+</html>
