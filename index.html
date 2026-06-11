@@ -85,7 +85,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--coral);outline-o
   margin-bottom:18px;flex-wrap:wrap}
 .sec-head h2{font-size:26px;font-weight:600;line-height:1.1}
 .sec-head p{color:var(--muted);font-size:13px;margin-top:4px}
-.sec-actions{display:flex;gap:8px;flex-wrap:wrap}
+.sec-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
 /* filter pills */
 .filters{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap}
@@ -186,6 +186,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--coral);outline-o
 .ms.on .msdot{background:var(--green);border-color:var(--green)}
 .ms .mslab em{font-style:normal;font-weight:600;color:var(--ink)}
 .ms.on .mslab em{color:var(--green)}
+.exp{color:var(--muted);font-style:italic;font-weight:600}
 .uploadrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .filebtn{position:relative;overflow:hidden;display:inline-flex;align-items:center}
 .filebtn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
@@ -202,6 +203,18 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--coral);outline-o
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
 .form-grid .full{grid-column:1/-1}
 .field label{font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+
+/* dual-date grid (admin timeline dates: expected vs done) */
+.dgrid{display:grid;grid-template-columns:90px 1fr 1fr;gap:8px 10px;align-items:center;margin-top:8px}
+.dgrid .dh{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+.dgrid .dlab{font-size:12px;font-weight:600;color:var(--ink)}
+.dgrid .dcell{display:flex;gap:6px;align-items:center}
+.dgrid .dcell input{padding:6px 8px}
+@media(max-width:560px){
+  .dgrid{grid-template-columns:1fr}
+  .dgrid .dh{display:none}
+  .dgrid .dlab{margin-top:6px}
+}
 
 /* modal */
 .modal-back{position:fixed;inset:0;background:rgba(44,35,48,.42);display:flex;align-items:center;
@@ -267,6 +280,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--coral);outline-o
 .cal-chip.upl{background:var(--green-soft);color:var(--green)}
 .cal-chip.cut{background:var(--blue-soft);color:var(--blue)}
 .cal-chip.vis{background:var(--warn-soft);color:var(--warn)}
+.cal-chip.planu{background:#fff;color:var(--coral-deep);border:1px dashed var(--coral)}
 .cal-more{font-size:9px;color:var(--muted);font-weight:600;padding-left:2px}
 @media(max-width:560px){.cal-cell{min-height:56px;padding:3px}.cal-chip{font-size:8.5px;padding:1px 3px}.cal-grid{gap:4px}}
 </style>
@@ -314,7 +328,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--coral);outline-o
         <button id="langKo" onclick="setLang('ko')">한글</button>
       </div>
       <button id="exportBtn" class="btn-ghost hidden" onclick="exportExcel()">⬇ <span data-t="exportExcel"></span></button>
-      <button class="btn-ghost" onclick="reloadData()">↻ <span data-t="refresh"></span></button>
+      <button id="saveTopBtn" class="btn-ghost" onclick="saveNow()">💾 <span data-t="saveTop"></span></button>
       <button class="btn-ghost" onclick="signOut()"><span data-t="signOut"></span></button>
     </div>
   </div>
@@ -344,7 +358,7 @@ const STAGE_LABEL={
 const I18N={
   en:{
     tab_influencers:'Influencers',tab_clinics:'Clinics',tab_reviews:'Confirmed reviews',tab_track:'Status tracking',
-    refresh:'Refresh',signOut:'Sign out',exportExcel:'Export Excel',
+    refresh:'Refresh',saveTop:'Save',signOut:'Sign out',exportExcel:'Export Excel',
     inf_title:'Influencers',inf_sub:'Everyone in the pipeline, by status.',
     addInfluencer:'+ Add influencer',addClinic:'+ Add clinic',confirmReview:'+ Confirm review',
     fAll:'All',fConfirmed:'Confirmed',fSecured:'Secured',fCandidate:'Candidate',fRejected:'Passed',
@@ -373,13 +387,15 @@ const I18N={
     orLink:'or paste a hosted link',videoTooLarge:'File too large to store in-app (max ~3.5MB). Paste a hosted link instead (Google Drive, YouTube, or .mp4).',
     removeVideo:'Remove video',chooseFile:'Choose file',
     tab_stats:'Overview',
-    timelineDates:'Timeline dates',visitDate:'Visit date',footageDate:'First-cut date',setAllUpload:'Set upload date for all',
+    timelineDates:'Timeline dates',expected:'Expected',done:'Completed',exp:'expected',
+    visitRow:'Clinic visit',firstCutRow:'First-cut',uploadRow:'Upload',
+    setAllPlanUpload:'Set expected upload date — all',
     mode_claude:'Claude storage',mode_cloud:'Cloud sync',mode_local:'This device',
     localNote:'Saved in this browser only. Reviewers on other devices won\u2019t see your updates until you enable free cloud sync (see the note at the top of the HTML file).'
   },
   ko:{
     tab_influencers:'인플루언서',tab_clinics:'클리닉',tab_reviews:'확정 리뷰',tab_track:'진행 상태',
-    refresh:'새로고침',signOut:'로그아웃',exportExcel:'엑셀 다운로드',
+    refresh:'새로고침',saveTop:'저장',signOut:'로그아웃',exportExcel:'엑셀 다운로드',
     inf_title:'인플루언서',inf_sub:'상태별 전체 파이프라인.',
     addInfluencer:'+ 인플루언서 등록',addClinic:'+ 클리닉 등록',confirmReview:'+ 리뷰 확정',
     fAll:'전체',fConfirmed:'확정',fSecured:'확보',fCandidate:'후보',fRejected:'보류',
@@ -408,91 +424,22 @@ const I18N={
     orLink:'또는 호스팅 링크 붙여넣기',videoTooLarge:'앱에 저장하기엔 파일이 너무 큽니다(최대 약 3.5MB). 호스팅 링크(구글 드라이브, 유튜브, .mp4)를 붙여넣어 주세요.',
     removeVideo:'영상 삭제',chooseFile:'파일 선택',
     tab_stats:'통계',
-    timelineDates:'타임라인 날짜',visitDate:'방문 날짜',footageDate:'1차 영상 날짜',setAllUpload:'전체 업로드 날짜 설정',
+    timelineDates:'타임라인 날짜',expected:'예상일',done:'완료일',exp:'예상',
+    visitRow:'방문',firstCutRow:'1차 영상',uploadRow:'업로드',
+    setAllPlanUpload:'전체 업로드 예상일 설정',
     mode_claude:'Claude 저장소',mode_cloud:'클라우드 동기화',mode_local:'이 기기',
     localNote:'이 브라우저에만 저장됩니다. 다른 기기의 리뷰어가 업데이트를 보려면 무료 클라우드 동기화를 켜야 합니다(HTML 파일 상단 주석 참고).'
   }
 };
 
-/* ---------- seed data ---------- */
+/* ---------- seed data (imported from babyGLOW_Campaign_2026-06-11.xlsx) ---------- */
 function seed(){
-  const cl=[
-    {id:'c1',name:'Reva Clinic',branch:'Stadium One',mapUrl:'https://maps.app.goo.gl/XU3gijzaDFMTD93x7'},
-    {id:'c2',name:'Atier Wellness',branch:'Phatthanakan',mapUrl:'https://maps.app.goo.gl/CNcwswz9VsarqynEA'},
-    {id:'c3',name:'MuMu Clinic',branch:'',mapUrl:''},
-    {id:'c4',name:'Kalm Clinic',branch:'',mapUrl:''},
-    {id:'c5',name:'Jairak Clinic',branch:'',mapUrl:''}
-  ];
-  const I=(o)=>Object.assign({realName:'',area:'',dates:'',ig:'',igF:'',tt:'',ttF:'',note:'',photoUrl:''},o);
-  const inf=[
-    I({h:'asa.asanoyu',area:'Ramintra / Fashion Island',dates:'11, 13',ig:'https://www.instagram.com/asa.asanoyu',igF:'27K',tt:'https://www.tiktok.com/@asa.asanoyu',ttF:'442.3K',status:'secured'}),
-    I({h:'ningningsc',realName:'สุวภัทร ชุมแก้ว',dates:'19',ig:'https://www.instagram.com/ningningsc/',igF:'14.6K',tt:'https://www.tiktok.com/@ningningsc',ttF:'',status:'confirmed'}),
-    I({h:'Senw.y',realName:'วรเศรษฐ์ ยิ่งกิจภิญโญ',area:'IconSiam / BKK',dates:'11',ig:'https://www.instagram.com/senw.y',igF:'13.8K',tt:'https://www.tiktok.com/@senw.y',ttF:'20.4K',status:'confirmed'}),
-    I({h:'Perjidakarnn',realName:'จิฎากาญจน์ ศิริพงศ์อัคร',area:'Sukhumvit 101/1',dates:'19',ig:'https://www.instagram.com/perjidakarnn',igF:'7.1K',tt:'https://www.tiktok.com/@per_jidakarn',ttF:'18.5K',status:'confirmed'}),
-    I({h:'Tarrtar',area:'Ramintra / Ari / Siam',dates:'12-13',ig:'https://www.instagram.com/tarrtar',igF:'26K',tt:'https://www.tiktok.com/@tarrtarv',ttF:'3K',status:'secured'}),
-    I({h:'baiiyook_',realName:'ชุติกาญจน์ พิสิษฐ์เดชากุล',area:'Greater Bangkok',dates:'19',ig:'https://www.instagram.com/baiiyook_/',igF:'10.2K',tt:'https://www.tiktok.com/@boobaiiyook',ttF:'21.2K',status:'confirmed'}),
-    I({h:'Bbillysr',realName:'สรายุทธ เสือมาก',area:'Siam',dates:'12',ig:'https://www.instagram.com/bbillysr/',igF:'166K',tt:'https://www.tiktok.com/@bbillysr/',ttF:'13.2K',status:'confirmed'}),
-    I({h:'uponiz',area:'Ratchayothin / Ratchada / Huai Khwang / Lat Phrao',dates:'22-25, 29-30',ig:'https://www.instagram.com/uponiz',igF:'36.6K',tt:'https://www.tiktok.com/@uponiz',ttF:'10.8K',status:'secured'}),
-    I({h:'Umimsaruu.u',area:'Sukhumvit',dates:'11, 12 (afternoon)',ig:'https://www.instagram.com/umimsaru.u',igF:'18.6K',tt:'https://www.tiktok.com/@saruu.j',ttF:'43.9K',status:'confirmed'}),
-    I({h:'aya.official59',area:'Sukhumvit',dates:'12, 13',ig:'https://www.instagram.com/aya.official59',igF:'29.4K',tt:'https://www.tiktok.com/@aya.official59',ttF:'36.1K',status:'confirmed'}),
-    I({h:'dreamdrmm',area:'Ekkamai / Thonglor / Suan Luang / Rama 9',dates:'10',ig:'https://instagram.com/dreamdrmm',igF:'31K',tt:'https://www.tiktok.com/@dreamdrmm',ttF:'29.4K',status:'confirmed'}),
-    I({h:'Superlinllyn',realName:'คชามาศ สกุลทอง',dates:'10',ig:'https://www.instagram.com/superlinllyn',igF:'21K',tt:'https://www.tiktok.com/@superlinllyn',ttF:'10.8K',status:'confirmed'}),
-    I({h:'Pimpraeww',dates:'13',ig:'https://www.instagram.com/pimpraeww',igF:'18.6K',tt:'https://www.tiktok.com/@pimpraeww',ttF:'1.3K',status:'secured'}),
-    I({h:'Saraitsmeh',area:'Prawet / Chaloem Phrakiat',dates:'10-11-12',ig:'https://www.instagram.com/saraitsmeh/',igF:'77.6K',tt:'https://www.tiktok.com/@saraitsmehlol',ttF:'19.6K',status:'secured'}),
-    I({h:'Foxie.way',area:'Thian Thalee Rama 2',dates:'13',ig:'https://www.instagram.com/foxie.way/',igF:'50.2K',status:'confirmed'}),
-    I({h:'Onlyaclairr',dates:'13',ig:'https://www.instagram.com/onlyaclairr',igF:'17.7K',tt:'https://www.tiktok.com/@onlyaclairr',ttF:'0.6K',status:'secured'}),
-    I({h:'J.anekit',dates:'9',ig:'https://www.instagram.com/j.anekit',igF:'23.8K',status:'confirmed'}),
-    I({h:'ผู้ใหญ่ต้อ สาวสอง',dates:'17-18-19',ig:'https://www.instagram.com/chertam.nat',igF:'1.6K',tt:'https://www.tiktok.com/@chertam1711',ttF:'123.2K',status:'secured'}),
-    I({h:'Offteerapat',dates:'13',ig:'https://www.instagram.com/offteerapat',igF:'10K',status:'secured'}),
-    I({h:'Dd_niramol',realName:'นิรมล ประยูรหงษ์',area:'BKK',dates:'19',ig:'https://www.instagram.com/dd_niramol',igF:'17.6K',tt:'https://www.tiktok.com/@puhyerin',ttF:'121.1K',status:'confirmed'}),
-    I({h:'ggift.knw',area:'BKK',ig:'https://www.instagram.com/ggift.knw',igF:'31.4K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'iaumm',area:'BKK',ig:'https://www.instagram.com/iaumm___',igF:'15.8K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'lyslynette',area:'BKK',ig:'https://www.instagram.com/lyslynette/',igF:'39.3K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'eeprisaa',area:'BKK',ig:'https://www.instagram.com/eeprisaa/',igF:'10.3K',status:'secured',note:'Wants to shoot next week'}),
-    I({h:'namtanstp',area:'BKK',ig:'https://www.instagram.com/namtanstp',igF:'11.3K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'suwaniya',area:'BKK',ig:'https://www.instagram.com/suwaniya/',igF:'12.9K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'bbewt',area:'BKK',ig:'https://www.instagram.com/bbewt/',igF:'16.1K',status:'secured',note:'Just had hydrobooster'}),
-    I({h:'mewyu.nikko',area:'BKK',ig:'https://www.instagram.com/mewyu.nikko/reels/',igF:'22.7K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'mycookiehouse',area:'BKK',ig:'https://www.instagram.com/mycookie.house_/',igF:'30K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'mamuaymaru',area:'BKK',ig:'https://www.instagram.com/mmuaymaru/reels/',igF:'96.7K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'memaima',area:'BKK',ig:'https://www.instagram.com/memaima/',igF:'22.9K',status:'secured',note:'Check clinic availability first'}),
-    I({h:'sssupisara__',area:'BKK',dates:'after June',ig:'https://www.instagram.com/sssupisara__/',igF:'32K',status:'candidate'}),
-    I({h:'noey__ai',ig:'https://www.instagram.com/noey__ai',igF:'20K',status:'candidate',note:'Prefers Jairak Clinic'}),
-    I({h:'puhyerin69',ig:'https://www.instagram.com/puhyerin69',igF:'6K',tt:'https://www.tiktok.com/@puhyerin',ttF:'121K',status:'candidate'}),
-    I({h:'prettyplaeng',ig:'https://www.instagram.com/plaeng_paeploy',igF:'151K',tt:'https://www.tiktok.com/@fungplaeng',ttF:'11.7K',status:'candidate',note:'Contacting · Jairak Clinic'}),
-    I({h:'Creammycm',ig:'https://www.instagram.com/lalinyarrat/',igF:'100K',tt:'https://www.tiktok.com/@lalinyarrat',ttF:'5.3K',status:'candidate'}),
-    I({h:'j.raiwin',ig:'https://www.instagram.com/j.raiwin',igF:'106K',tt:'https://www.tiktok.com/@j.raiwin',ttF:'4.7K',status:'candidate'}),
-    I({h:'kfpps_',ig:'https://www.instagram.com/kfpps_',igF:'26.3K',tt:'https://www.tiktok.com/@faholaf_',ttF:'23.6K',status:'candidate'}),
-    I({h:'xiaoars',ig:'https://www.instagram.com/xiaoars',igF:'6.4K',tt:'https://www.tiktok.com/@xiaozunn',ttF:'58K',status:'candidate'}),
-    I({h:'ambeamms',area:'Bangna / Bangkapi / Srinakarin',ig:'https://www.instagram.com/ambeamms',igF:'12.7K',tt:'https://www.tiktok.com/@punjamareview',ttF:'48.8K',status:'rejected'}),
-    I({h:'punanchittha',area:'Lat Phrao',dates:'1-5 / after 25',ig:'https://www.instagram.com/punanchittha/',igF:'22.9K',tt:'https://www.tiktok.com/@noey_ai',ttF:'5.7K',status:'candidate',note:'Eye surgery recovery ~12 days'}),
-    I({h:'Innetbook',area:'Pathum Thani / Rangsit',dates:'Jun 1',ig:'https://instagram.com/innetbook',igF:'16K',status:'candidate'}),
-    I({h:'miiwthny',ig:'https://www.instagram.com/miiwthny',igF:'22.3K',status:'candidate'}),
-    I({h:'bubblebeeee',ig:'https://www.instagram.com/bubblebeeee/',igF:'156K',status:'candidate'}),
-    I({h:'cherry.271',ig:'https://www.instagram.com/cherry.271',igF:'28K',status:'candidate'}),
-    I({h:'uxyam',ig:'https://instagram.com/uxyam',igF:'15.3K',status:'candidate'})
-  ];
-  inf.forEach((x,i)=>{x.id='i'+(i+1)});
-  const byH=h=>inf.find(x=>x.h===h).id;
-  const B=(h,c,d,t)=>({id:'b'+Math.random().toString(36).slice(2,8),infId:byH(h),clinicId:c,date:d,time:t||'',
-    stage:'confirmed',footageUrl:'',finalUrl:'',uploadDate:'',revisions:[]});
-  const bk=[
-    B('ningningsc','c2','2026-06-19','12:00'),
-    B('Senw.y','c1','2026-06-11','14:00'),
-    B('Perjidakarnn','c2','2026-06-19','12:00'),
-    B('baiiyook_','c2','2026-06-19','12:00'),
-    B('Bbillysr','c1','2026-06-12','15:00'),
-    B('Umimsaruu.u','c3','2026-06-11',''),
-    B('aya.official59','c3','2026-06-12',''),
-    B('dreamdrmm','c4','2026-06-10',''),
-    B('Superlinllyn','c1','2026-06-10','18:00'),
-    B('Foxie.way','c3','2026-06-13',''),
-    B('J.anekit','c4','2026-06-09',''),
-    B('Dd_niramol','c2','2026-06-19','12:00')
-  ];
-  return {influencers:inf,clinics:cl,bookings:bk};
+  return {
+    influencers:[{"id": "i1", "h": "asa.asanoyu", "realName": "", "area": "Ramintra / Fashion Island", "dates": "11, 13", "ig": "https://www.instagram.com/asa.asanoyu", "igF": "27K", "tt": "https://www.tiktok.com/@asa.asanoyu", "ttF": "442.3K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i2", "h": "ningningsc", "realName": "สุวภัทร ชุมแก้ว", "area": "", "dates": "19", "ig": "https://www.instagram.com/ningningsc/", "igF": "14.6K", "tt": "https://www.tiktok.com/@ningningsc", "ttF": "", "note": "", "status": "confirmed", "photoUrl": ""}, {"id": "i3", "h": "Senw.y", "realName": "วรเศรษฐ์ ยิ่งกิจภิญโญ", "area": "IconSiam / BKK", "dates": "11", "ig": "https://www.instagram.com/senw.y", "igF": "13.8K", "tt": "https://www.tiktok.com/@senw.y", "ttF": "20.4K", "note": "", "status": "confirmed", "photoUrl": ""}, {"id": "i4", "h": "Perjidakarnn", "realName": "จิฎากาญจน์ ศิริพงศ์อัคร", "area": "Sukhumvit 101/1", "dates": "19", "ig": "https://www.instagram.com/perjidakarnn", "igF": "7.1K", "tt": "https://www.tiktok.com/@per_jidakarn", "ttF": "18.5K", "note": "", "status": "confirmed", "photoUrl": ""}, {"id": "i5", "h": "Tarrtar", "realName": "", "area": "Ramintra / Ari / Siam", "dates": "12-13", "ig": "https://www.instagram.com/tarrtar", "igF": "26K", "tt": "https://www.tiktok.com/@tarrtarv", "ttF": "3K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i6", "h": "baiiyook_", "realName": "ชุติกาญจน์ พิสิษฐ์เดชากุล", "area": "Greater Bangkok", "dates": "19", "ig": "https://www.instagram.com/baiiyook_/", "igF": "10.2K", "tt": "https://www.tiktok.com/@boobaiiyook", "ttF": "21.2K", "note": "", "status": "confirmed", "photoUrl": ""}, {"id": "i7", "h": "Bbillysr", "realName": "สรายุทธ เสือมาก", "area": "Siam", "dates": "12", "ig": "https://www.instagram.com/bbillysr/", "igF": "166K", "tt": "https://www.tiktok.com/@bbillysr/", "ttF": "13.2K", "note": "", "status": "confirmed", "photoUrl": ""}, {"id": "i8", "h": "uponiz", "realName": "", "area": "Ratchayothin / Ratchada / Huai Khwang / Lat Phrao", "dates": "22-25, 29-30", "ig": "https://www.instagram.com/uponiz", "igF": "36.6K", "tt": "https://www.tiktok.com/@uponiz", "ttF": "10.8K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i9", "h": "Umimsaruu.u", "realName": "", "area": "Sukhumvit", "dates": "", "ig": "https://www.instagram.com/umimsaru.u", "igF": "18.6K", "tt": "https://www.tiktok.com/@saruu.j", "ttF": "43.9K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i10", "h": "aya.official59", "realName": "", "area": "Sukhumvit", "dates": "", "ig": "https://www.instagram.com/aya.official59", "igF": "29.4K", "tt": "https://www.tiktok.com/@aya.official59", "ttF": "36.1K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i11", "h": "dreamdrmm", "realName": "", "area": "Ekkamai / Thonglor / Suan Luang / Rama 9", "dates": "", "ig": "https://instagram.com/dreamdrmm", "igF": "31K", "tt": "https://www.tiktok.com/@dreamdrmm", "ttF": "29.4K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i12", "h": "Superlinllyn", "realName": "คชามาศ สกุลทอง", "area": "", "dates": "", "ig": "https://www.instagram.com/superlinllyn", "igF": "21K", "tt": "https://www.tiktok.com/@superlinllyn", "ttF": "10.8K", "note": "", "status": "confirmed", "photoUrl": ""}, {"id": "i13", "h": "Pimpraeww", "realName": "", "area": "", "dates": "13", "ig": "https://www.instagram.com/pimpraeww", "igF": "18.6K", "tt": "https://www.tiktok.com/@pimpraeww", "ttF": "1.3K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i14", "h": "Saraitsmeh", "realName": "", "area": "Prawet / Chaloem Phrakiat", "dates": "10-11-12", "ig": "https://www.instagram.com/saraitsmeh/", "igF": "77.6K", "tt": "https://www.tiktok.com/@saraitsmehlol", "ttF": "19.6K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i15", "h": "Foxie.way", "realName": "", "area": "Thian Thalee Rama 2", "dates": "", "ig": "https://www.instagram.com/foxie.way/", "igF": "50.2K", "tt": "", "ttF": "", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i16", "h": "Onlyaclairr", "realName": "", "area": "", "dates": "13", "ig": "https://www.instagram.com/onlyaclairr", "igF": "17.7K", "tt": "https://www.tiktok.com/@onlyaclairr", "ttF": "0.6K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i17", "h": "ผู้ใหญ่ต้อ สาวสอง", "realName": "", "area": "", "dates": "17-18-19", "ig": "https://www.instagram.com/chertam.nat", "igF": "1.6K", "tt": "https://www.tiktok.com/@chertam1711", "ttF": "123.2K", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i18", "h": "Offteerapat", "realName": "", "area": "", "dates": "13", "ig": "https://www.instagram.com/offteerapat", "igF": "10K", "tt": "", "ttF": "", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i19", "h": "Dd_niramol", "realName": "นิรมล ประยูรหงษ์", "area": "BKK", "dates": "19", "ig": "https://www.instagram.com/dd_niramol", "igF": "17.6K", "tt": "https://www.tiktok.com/@puhyerin", "ttF": "121.1K", "note": "", "status": "confirmed", "photoUrl": ""}, {"id": "i20", "h": "ggift.knw", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/ggift.knw", "igF": "31.4K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i21", "h": "iaumm", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/iaumm___", "igF": "15.8K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i22", "h": "lyslynette", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/lyslynette/", "igF": "39.3K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i23", "h": "eeprisaa", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/eeprisaa/", "igF": "10.3K", "tt": "", "ttF": "", "note": "Wants to shoot next week", "status": "secured", "photoUrl": ""}, {"id": "i24", "h": "namtanstp", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/namtanstp", "igF": "11.3K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i25", "h": "suwaniya", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/suwaniya/", "igF": "12.9K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i26", "h": "bbewt", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/bbewt/", "igF": "16.1K", "tt": "", "ttF": "", "note": "Just had hydrobooster", "status": "secured", "photoUrl": ""}, {"id": "i27", "h": "mewyu.nikko", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/mewyu.nikko/reels/", "igF": "22.7K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i28", "h": "mycookiehouse", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/mycookie.house_/", "igF": "30K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i29", "h": "mamuaymaru", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/mmuaymaru/reels/", "igF": "96.7K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i30", "h": "memaima", "realName": "", "area": "BKK", "dates": "", "ig": "https://www.instagram.com/memaima/", "igF": "22.9K", "tt": "", "ttF": "", "note": "Check clinic availability first", "status": "secured", "photoUrl": ""}, {"id": "i31", "h": "sssupisara__", "realName": "", "area": "BKK", "dates": "after June", "ig": "https://www.instagram.com/sssupisara__/", "igF": "32K", "tt": "", "ttF": "", "note": "6월 이후 가능", "status": "candidate", "photoUrl": ""}, {"id": "i32", "h": "J.anekit", "realName": "", "area": "", "dates": "", "ig": "https://www.instagram.com/j.anekit", "igF": "23.8K", "tt": "", "ttF": "", "note": "", "status": "secured", "photoUrl": ""}, {"id": "i33", "h": "nanana.namii", "realName": "", "area": "", "dates": "", "ig": "https://www.instagram.com/nanana.namii/", "igF": "12.4K", "tt": "", "ttF": "", "note": "6월 이후 가능", "status": "candidate", "photoUrl": ""}, {"id": "i34", "h": "leeidaa", "realName": "", "area": "", "dates": "", "ig": "https://www.instagram.com/leeidaa/", "igF": "24.4K", "tt": "", "ttF": "", "note": "6월 이후 가능", "status": "candidate", "photoUrl": ""}, {"id": "i35", "h": "punanchittha", "realName": "", "area": "", "dates": "", "ig": "https://www.instagram.com/punanchittha/?hl=th", "igF": "22.9K", "tt": "", "ttF": "", "note": "6월 이후 간능", "status": "candidate", "photoUrl": ""}],
+    clinics:[{"id": "c1", "name": "Reva Clinic", "branch": "Stadium One", "mapUrl": "https://maps.app.goo.gl/XU3gijzaDFMTD93x7"}, {"id": "c2", "name": "Atier Wellness", "branch": "Phatthanakan", "mapUrl": "https://maps.app.goo.gl/CNcwswz9VsarqynEA"}, {"id": "c3", "name": "Kalm Clinic", "branch": "", "mapUrl": ""}],
+    bookings:[{"id": "bk1", "infId": "i2", "clinicId": "c2", "date": "2026-06-19", "time": "12:00", "stage": "confirmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {"footage": "2026-06-22", "upload": "2026-06-24"}, "stageDates": {}, "revisions": []}, {"id": "bk2", "infId": "i3", "clinicId": "c1", "date": "2026-06-11", "time": "14:00", "stage": "confirmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {"footage": "2026-06-14", "upload": "2026-06-24"}, "stageDates": {}, "revisions": []}, {"id": "bk3", "infId": "i4", "clinicId": "c2", "date": "2026-06-19", "time": "12:00", "stage": "confirmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {"footage": "2026-06-11", "upload": "2026-06-24"}, "stageDates": {}, "revisions": []}, {"id": "bk4", "infId": "i6", "clinicId": "c2", "date": "2026-06-19", "time": "12:00", "stage": "confirmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {"footage": "2026-06-11", "upload": "2026-06-24"}, "stageDates": {}, "revisions": []}, {"id": "bk5", "infId": "i7", "clinicId": "c1", "date": "2026-06-12", "time": "15:00", "stage": "confirmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {"footage": "2026-06-16", "upload": "2026-06-24"}, "stageDates": {}, "revisions": []}, {"id": "bk6", "infId": "i11", "clinicId": "c3", "date": "", "time": "", "stage": "confirmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {"footage": "2026-06-11", "upload": "2026-06-24"}, "stageDates": {}, "revisions": []}, {"id": "bk7", "infId": "i12", "clinicId": "c1", "date": "2026-06-10", "time": "18:00", "stage": "filmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {"footage": "2026-06-13", "upload": "2026-06-24"}, "stageDates": {"visited": "2026-06-11"}, "revisions": []}, {"id": "bk8", "infId": "i19", "clinicId": "c2", "date": "2026-06-19", "time": "12:00", "stage": "confirmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {"footage": "2026-06-11", "upload": "2026-06-24"}, "stageDates": {}, "revisions": []}, {"id": "bk9", "infId": "i32", "clinicId": "c3", "date": "", "time": "", "stage": "confirmed", "footageUrl": "", "finalUrl": "", "uploadDate": "", "plan": {}, "stageDates": {}, "revisions": []}]
+  };
 }
-
 /* ---------- storage ---------- */
 let DB=null;
 
@@ -556,6 +503,7 @@ const Store={
 
 async function loadData(){try{return await Store.getMain();}catch(e){return null;}}
 async function saveData(){try{await Store.setMain(DB);}catch(e){console.warn('save failed',e);}}
+async function saveNow(){await saveData();toast(t('saved'));}
 async function reloadData(){
   try{const fresh=await Store.getMain();if(fresh){DB=fresh;videoCache={};}}catch(e){}
   render();toast(t('saved'));
@@ -623,6 +571,7 @@ function setupChrome(){
   sm.title=Store.mode==='local'?t('localNote'):'';
   document.getElementById('langToggle').classList.toggle('hidden',!isAdmin);
   document.getElementById('exportBtn').classList.toggle('hidden',!isAdmin);
+  document.getElementById('saveTopBtn').classList.toggle('hidden',!isAdmin);
   document.getElementById('langEn').classList.toggle('on',state.lang==='en');
   document.getElementById('langKo').classList.toggle('on',state.lang==='ko');
   document.querySelectorAll('[data-t]').forEach(el=>el.textContent=t(el.getAttribute('data-t')));
@@ -655,6 +604,10 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;
 function inf(id){return DB.influencers.find(x=>x.id===id);}
 function clinic(id){return DB.clinics.find(x=>x.id===id);}
 function clinicLabel(id){const c=clinic(id);if(!c)return '—';return c.name+(c.branch?' · '+c.branch:'');}
+function uid(p){return p+Math.random().toString(36).slice(2,8);}
+function gv(id){const el=document.getElementById(id);return el?el.value:'';}
+/* local (not UTC) YYYY-MM-DD so date-stamping never jumps a day in +07:00 */
+function todayLocal(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function avatar(x,size){
   const s=size||46;
   if(x.photoUrl){
@@ -700,7 +653,7 @@ async function handleVideoUpload(bid,input){
     videoCache[bid]=dataUrl;
     b.footageType='upload';b.footageUrl='';b.footageName=f.name;
     if(STAGES.indexOf(b.stage)<STAGES.indexOf('footage'))b.stage='footage';
-    await saveData();render();toast(t('saved'));
+    await saveData();render(true);toast(t('saved'));
   };
   reader.readAsDataURL(f);
 }
@@ -711,20 +664,21 @@ async function setVideoLink(bid,url){
   videoCache[bid]=null;
   try{await Store.delVideo(bid);}catch(e){}
   if(STAGES.indexOf(b.stage)<STAGES.indexOf('footage'))b.stage='footage';
-  await saveData();render();toast(t('saved'));
+  await saveData();render(true);toast(t('saved'));
 }
 async function removeVideo(bid){
   const b=DB.bookings.find(x=>x.id===bid);if(!b)return;
   b.footageUrl='';b.footageType='';b.footageName='';
   videoCache[bid]=null;
   try{await Store.delVideo(bid);}catch(e){}
-  await saveData();render();
+  await saveData();render(true);
 }
 
 /* ---------- render dispatch ---------- */
-async function render(){
+async function render(keepScroll){
+  const sy=keepScroll?window.scrollY:null;
   await loadVideos();
-  if(state.role==='viewer'){renderViewer();return;}
+  if(state.role==='viewer'){renderViewer();if(sy!=null)window.scrollTo(0,sy);return;}
   const v=document.getElementById('view');
   let html='';
   if(state.tab==='influencers')html=viewInfluencers();
@@ -733,6 +687,7 @@ async function render(){
   else if(state.tab==='track')html=viewTrack();
   if(Store.mode==='local')html=`<div class="note-bar">⚠ <span>${t('localNote')}</span></div>`+html;
   v.innerHTML=html;
+  if(sy!=null)window.scrollTo(0,sy);
 }
 
 /* ---------- INFLUENCERS ---------- */
@@ -829,31 +784,29 @@ function reviewRow(b){
 
 /* ---------- STATUS TRACKING ---------- */
 function viewTrack(){
-  const sorted=[...DB.bookings].sort((a,b)=>STAGES.indexOf(a.stage)-STAGES.indexOf(b.stage));
+  // STABLE order: by visit date then id. Advancing a stage no longer reorders cards.
+  const sorted=[...DB.bookings].sort((a,b)=>
+    ((a.date||'9999-99-99').localeCompare(b.date||'9999-99-99'))||a.id.localeCompare(b.id));
   return `
   <div class="sec-head"><div><h2>${t('track_title')}</h2><p>${t('track_sub')}</p></div>
     <div class="sec-actions">
-      <input id="bulkUploadDate" type="date" style="max-width:160px;display:inline-block;width:auto">
-      <button class="btn-ghost" onclick="bulkSetUploadDate(document.getElementById('bulkUploadDate').value)">${t('setAllUpload')}</button>
+      <input id="bulkPlanUpload" type="date" style="max-width:160px;display:inline-block;width:auto">
+      <button class="btn-ghost" onclick="bulkSetPlanUpload(document.getElementById('bulkPlanUpload').value)">${t('setAllPlanUpload')}</button>
     </div>
   </div>
   ${sorted.length?sorted.map(trackCard).join(''):
     `<div class="empty"><span class="ic">📈</span><div class="t">${t('noBookings')}</div></div>`}`;
 }
-async function bulkSetUploadDate(val){
+async function bulkSetPlanUpload(val){
   val=(val||'').trim();if(!val){toast(t('uploadDate')+' ?');return;}
-  DB.bookings.forEach(b=>{
-    b.uploadDate=val;
-    if(!b.stageDates)b.stageDates={};
-    b.stageDates.uploaded=val;
-    b.stage='uploaded';
-    const x=inf(b.infId);if(x)x.status='confirmed';
-  });
-  await saveData();render();toast(t('saved'));
+  DB.bookings.forEach(b=>{if(!b.plan)b.plan={};b.plan.upload=val;});
+  await saveData();render(true);toast(t('saved'));
 }
 function trackCard(b){
   const x=inf(b.infId)||{h:'?'};
   const idx=STAGES.indexOf(b.stage);
+  const sd=b.stageDates||{};
+  const pl=b.plan||{};
   const steps=STAGES.map((s,i)=>{
     const cls=i<idx?'done':(i===idx?'cur':'');
     return `<div class="step ${cls}"><span class="dot"></span><span class="lab">${stageLabel(s)}</span></div>`;
@@ -903,17 +856,20 @@ function trackCard(b){
     </div>
     <div class="divider"></div>
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">${t('timelineDates')}</div>
-    <div class="field-row"><label>${t('visitDate')}</label>
-      <input id="vd_${b.id}" type="date" value="${esc((b.stageDates&&b.stageDates.visited)||'')}" style="max-width:180px">
-      <button class="mini" onclick="saveStageDate('${b.id}','visited',document.getElementById('vd_${b.id}').value)">${t('save')}</button>
-    </div>
-    <div class="field-row"><label>${t('footageDate')}</label>
-      <input id="fd_${b.id}" type="date" value="${esc((b.stageDates&&b.stageDates.footage)||'')}" style="max-width:180px">
-      <button class="mini" onclick="saveStageDate('${b.id}','footage',document.getElementById('fd_${b.id}').value)">${t('save')}</button>
-    </div>
-    <div class="field-row"><label>${t('uploadDate')}</label>
-      <input id="ud_${b.id}" type="date" value="${esc(b.uploadDate)}" style="max-width:180px">
-      <button class="mini" onclick="saveBookingField('${b.id}','uploadDate',document.getElementById('ud_${b.id}').value)">${t('save')}</button>
+    <div class="dgrid">
+      <div class="dh"></div><div class="dh">${t('expected')}</div><div class="dh">${t('done')}</div>
+
+      <div class="dlab">${t('visitRow')}</div>
+      <div class="dcell"><input id="pv_${b.id}" type="date" title="${t('expected')}" value="${esc(b.date||'')}"><button class="mini" onclick="saveBookingField('${b.id}','date',gv('pv_${b.id}'))">${t('save')}</button></div>
+      <div class="dcell"><input id="av_${b.id}" type="date" title="${t('done')}" value="${esc(sd.visited||'')}"><button class="mini solid" onclick="saveStageDate('${b.id}','visited',gv('av_${b.id}'))">${t('save')}</button></div>
+
+      <div class="dlab">${t('firstCutRow')}</div>
+      <div class="dcell"><input id="pf_${b.id}" type="date" title="${t('expected')}" value="${esc(pl.footage||'')}"><button class="mini" onclick="savePlanDate('${b.id}','footage',gv('pf_${b.id}'))">${t('save')}</button></div>
+      <div class="dcell"><input id="af_${b.id}" type="date" title="${t('done')}" value="${esc(sd.footage||'')}"><button class="mini solid" onclick="saveStageDate('${b.id}','footage',gv('af_${b.id}'))">${t('save')}</button></div>
+
+      <div class="dlab">${t('uploadRow')}</div>
+      <div class="dcell"><input id="pu_${b.id}" type="date" title="${t('expected')}" value="${esc(pl.upload||'')}"><button class="mini" onclick="savePlanDate('${b.id}','upload',gv('pu_${b.id}'))">${t('save')}</button></div>
+      <div class="dcell"><input id="au_${b.id}" type="date" title="${t('done')}" value="${esc(b.uploadDate||sd.uploaded||'')}"><button class="mini solid" onclick="saveStageDate('${b.id}','uploaded',gv('au_${b.id}'))">${t('save')}</button></div>
     </div>
     <div class="divider"></div>
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">${t('revisions')} (${(b.revisions||[]).length})</div>
@@ -1019,7 +975,7 @@ const CAL_DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const CAL_MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 function setSchedView(v){state.schedView=v;render();}
 function shiftSchedMonth(delta){
-  const ym=state.schedMonth||new Date().toISOString().slice(0,7);
+  const ym=state.schedMonth||todayLocal().slice(0,7);
   const [Y,M]=ym.split('-').map(Number);
   const d=new Date(Y,M-1+delta,1);
   state.schedMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
@@ -1028,7 +984,7 @@ function shiftSchedMonth(delta){
 function selectSchedDay(date){state.schedDay=(state.schedDay===date?null:date);render();}
 function viewerSchedule(){
   const sorted=[...DB.bookings].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  const intro=`<div class="viewer-intro"><h2>Confirmed schedule</h2><p>Visit dates, progress, first-cut videos and revision requests — all in one place.</p></div>`;
+  const intro=`<div class="viewer-intro"><h2>Confirmed schedule</h2><p>Visit dates, expected upload dates, first-cut videos and revision requests — all in one place.</p></div>`;
   const toggle=`<div class="sched-toggle">
     <button class="fpill ${state.schedView!=='calendar'?'on':''}" onclick="setSchedView('list')">List</button>
     <button class="fpill ${state.schedView==='calendar'?'on':''}" onclick="setSchedView('calendar')">Calendar</button>
@@ -1038,19 +994,27 @@ function viewerSchedule(){
       `<div class="empty"><span class="ic">🗓️</span><div class="t">No confirmed reviews yet</div></div>`);
 }
 function viewerCalendar(){
-  const bookings=DB.bookings.filter(b=>b.date);
+  // events: clinic visits on b.date + uploads (actual if uploaded, else expected) on their dates
+  const events=[];
+  DB.bookings.forEach(b=>{
+    if(b.date)events.push({date:b.date,b,kind:'visit'});
+    const sd=b.stageDates||{}, pl=b.plan||{};
+    const actU=b.uploadDate||sd.uploaded||'';
+    if(b.stage==='uploaded'&&actU)events.push({date:actU,b,kind:'updone'});
+    else if(pl.upload)events.push({date:pl.upload,b,kind:'uplan'});
+  });
   let ym=state.schedMonth;
   if(!ym){
-    const ds=bookings.map(b=>b.date).sort();
-    ym=ds.length?ds[0].slice(0,7):new Date().toISOString().slice(0,7);
+    const ds=events.map(e=>e.date).filter(Boolean).sort();
+    ym=ds.length?ds[0].slice(0,7):todayLocal().slice(0,7);
     state.schedMonth=ym;
   }
   const [Y,M]=ym.split('-').map(Number);
   const startDow=new Date(Y,M-1,1).getDay();
   const daysInMonth=new Date(Y,M,0).getDate();
-  const todayStr=new Date().toISOString().slice(0,10);
+  const todayStr=todayLocal();
   const byDay={};
-  bookings.forEach(b=>{if(b.date.slice(0,7)===ym)(byDay[b.date]=byDay[b.date]||[]).push(b);});
+  events.forEach(e=>{if(e.date.slice(0,7)===ym)(byDay[e.date]=byDay[e.date]||[]).push(e);});
   let cells='';
   for(let i=0;i<startDow;i++)cells+=`<div class="cal-cell empty"></div>`;
   for(let d=1;d<=daysInMonth;d++){
@@ -1060,15 +1024,21 @@ function viewerCalendar(){
     const today=ds===todayStr?'today':'';
     const has=items.length?'has':'';
     let chips='';
-    items.slice(0,3).forEach(b=>{
-      const x=inf(b.infId)||{h:'?'};
-      const si=STAGES.indexOf(b.stage);
-      let cls='';
-      if(b.stage==='uploaded')cls='upl';
-      else if(si>=STAGES.indexOf('footage'))cls='cut';
-      else if(si>=STAGES.indexOf('visited'))cls='vis';
-      const dot=b.stage==='uploaded'?'● ':(si>=STAGES.indexOf('footage')?'◎ ':(si>=STAGES.indexOf('visited')?'◍ ':''));
-      chips+=`<div class="cal-chip ${cls}">${dot}${esc(x.h)}${b.time?' '+esc(b.time):''}</div>`;
+    items.slice(0,3).forEach(e=>{
+      const x=inf(e.b.infId)||{h:'?'};
+      if(e.kind==='visit'){
+        const si=STAGES.indexOf(e.b.stage);
+        let cls='';
+        if(e.b.stage==='uploaded')cls='upl';
+        else if(si>=STAGES.indexOf('footage'))cls='cut';
+        else if(si>=STAGES.indexOf('visited'))cls='vis';
+        const dot=e.b.stage==='uploaded'?'● ':(si>=STAGES.indexOf('footage')?'◎ ':(si>=STAGES.indexOf('visited')?'◍ ':''));
+        chips+=`<div class="cal-chip ${cls}">${dot}${esc(x.h)}${e.b.time?' '+esc(e.b.time):''}</div>`;
+      }else if(e.kind==='updone'){
+        chips+=`<div class="cal-chip upl">⬆ ${esc(x.h)}</div>`;
+      }else{
+        chips+=`<div class="cal-chip planu">⬆ ${esc(x.h)}</div>`;
+      }
     });
     if(items.length>3)chips+=`<div class="cal-more">+${items.length-3} more</div>`;
     cells+=`<div class="cal-cell ${has} ${sel} ${today}" ${items.length?`onclick="selectSchedDay('${ds}')"`:''}>
@@ -1079,8 +1049,10 @@ function viewerCalendar(){
   if(state.schedDay&&byDay[state.schedDay]){
     const dt=new Date(state.schedDay+'T00:00:00');
     const lbl=CAL_DOW[dt.getDay()]+', '+CAL_MONTHS[dt.getMonth()]+' '+dt.getDate();
+    const seen={};const cards=[];
+    byDay[state.schedDay].forEach(e=>{if(!seen[e.b.id]){seen[e.b.id]=1;cards.push(e.b);}});
     detail=`<div style="margin-top:6px"><div style="font-size:13px;font-weight:700;color:var(--ink);margin:4px 0 12px">${lbl}</div>
-      ${byDay[state.schedDay].map(viewerScheduleCard).join('')}</div>`;
+      ${cards.map(viewerScheduleCard).join('')}</div>`;
   }
   return `<div class="cal-wrap">
     <div class="cal-head">
@@ -1095,8 +1067,9 @@ function viewerCalendar(){
       <span><span style="color:var(--warn)">◍</span> Visit done</span>
       <span><span style="color:var(--blue)">◎</span> First-cut</span>
       <span><span style="color:var(--green)">●</span> Uploaded</span>
+      <span><span style="color:var(--coral-deep)">⬆</span> Upload (expected/done)</span>
     </div>
-    ${bookings.length?'<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Tap a day to see its reviews.</div>':'<div style="font-size:12.5px;color:var(--muted);margin-top:10px">No confirmed reviews yet.</div>'}
+    ${events.length?'<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Tap a day to see its reviews.</div>':'<div style="font-size:12.5px;color:var(--muted);margin-top:10px">No confirmed reviews yet.</div>'}
   </div>${detail}`;
 }
 function viewerScheduleCard(b){
@@ -1106,8 +1079,9 @@ function viewerScheduleCard(b){
   const src=videoSrc(b);
   const cut=!!src||idx>=STAGES.indexOf('footage');
   const uploaded=b.stage==='uploaded';
-  const sd=b.stageDates||{};
-  const dtag=d=>d?` <em>${esc(d)}</em>`:'';
+  const sd=b.stageDates||{}; const pl=b.plan||{};
+  const done=d=>d?` <em>${esc(d)}</em>`:'';
+  const exp=d=>d?` <span class="exp">${t('exp')} ${esc(d)}</span>`:'';
   const revs=(b.revisions||[]).map(r=>`
     <div class="rev-msg ${r.by}">
       <div class="meta"><span>${r.by==='viewer'?'You':'Team'} · ${esc(r.at)}</span>
@@ -1119,9 +1093,9 @@ function viewerScheduleCard(b){
     </div>
     <div style="margin-top:6px">
       <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Clinic visit <em>${esc(b.date||'TBD')}${b.time?' · '+esc(b.time):''}</em></span></div>
-      <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Visit completed${dtag(sd.visited)}</span></div>
-      <div class="ms ${cut?'on':''}"><span class="msdot">${cut?'✓':''}</span><span class="mslab">First-cut video received${dtag(sd.footage)}</span></div>
-      <div class="ms ${uploaded?'on':''}"><span class="msdot">${uploaded?'✓':''}</span><span class="mslab">Uploaded${dtag(b.uploadDate||sd.uploaded)}</span></div>
+      <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Visit completed${visited?done(sd.visited):exp(b.date)}</span></div>
+      <div class="ms ${cut?'on':''}"><span class="msdot">${cut?'✓':''}</span><span class="mslab">First-cut video received${cut?done(sd.footage):exp(pl.footage)}</span></div>
+      <div class="ms ${uploaded?'on':''}"><span class="msdot">${uploaded?'✓':''}</span><span class="mslab">Uploaded${uploaded?done(b.uploadDate||sd.uploaded):exp(pl.upload)}</span></div>
     </div>
     ${src?videoEmbed(src):`<div class="no-video">First-cut video not delivered yet.</div>`}
     ${src?`
@@ -1138,31 +1112,38 @@ function viewerScheduleCard(b){
 /* ============================================================
    MUTATIONS
    ============================================================ */
-function uid(p){return p+Math.random().toString(36).slice(2,8);}
-
 async function setStage(id,stage){
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
   b.stage=stage;
-  const today=new Date().toISOString().slice(0,10);
+  const today=todayLocal();
   if(!b.stageDates)b.stageDates={};
   // record the date this stage was reached (keep existing if already set)
   if(!b.stageDates[stage])b.stageDates[stage]=today;
   if(stage==='uploaded'&&!b.uploadDate)b.uploadDate=today;
   // sync influencer status to confirmed
   const x=inf(b.infId);if(x)x.status='confirmed';
-  await saveData();render();toast(t('saved'));
+  await saveData();render(true);toast(t('saved'));
 }
 async function saveBookingField(id,field,val){
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
-  b[field]=val.trim();
+  b[field]=(val||'').trim();
   if(field==='uploadDate'&&b[field]){
     if(!b.stageDates)b.stageDates={};
     if(!b.stageDates.uploaded)b.stageDates.uploaded=b[field];
     if(STAGES.indexOf(b.stage)<STAGES.indexOf('uploaded'))b.stage='uploaded';
     const x=inf(b.infId);if(x)x.status='confirmed';
   }
-  await saveData();render();toast(t('saved'));
+  await saveData();render(true);toast(t('saved'));
 }
+/* EXPECTED (planned) date — never advances the stage */
+async function savePlanDate(id,key,val){
+  const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  if(!b.plan)b.plan={};
+  val=(val||'').trim();
+  if(val)b.plan[key]=val;else delete b.plan[key];
+  await saveData();render(true);toast(t('saved'));
+}
+/* ACTUAL (completed) date — sets the real date AND advances the stage */
 async function saveStageDate(id,stage,val){
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
   if(!b.stageDates)b.stageDates={};
@@ -1175,7 +1156,7 @@ async function saveStageDate(id,stage,val){
   }else{
     delete b.stageDates[stage];
   }
-  await saveData();render();toast(t('saved'));
+  await saveData();render(true);toast(t('saved'));
 }
 async function addRevision(id,by,text){
   if(!text||!text.trim()){return;}
@@ -1183,13 +1164,13 @@ async function addRevision(id,by,text){
   try{const fresh=await Store.getMain();if(fresh)DB=fresh;}catch(e){}
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
   if(!b.revisions)b.revisions=[];
-  b.revisions.push({id:uid('r'),by,text:text.trim(),at:new Date().toISOString().slice(0,16).replace('T',' '),resolved:false});
-  await saveData();render();toast(t('saved'));
+  b.revisions.push({id:uid('r'),by,text:text.trim(),at:todayLocal()+' '+new Date().toTimeString().slice(0,5),resolved:false});
+  await saveData();render(true);toast(t('saved'));
 }
 async function resolveRev(bid,rid){
   const b=DB.bookings.find(x=>x.id===bid);if(!b)return;
-  const r=b.revisions.find(x=>x.id===rid);if(r){r.resolved=true;r.resolvedAt=new Date().toISOString().slice(0,10);}
-  await saveData();render();toast(t('saved'));
+  const r=b.revisions.find(x=>x.id===rid);if(r){r.resolved=true;r.resolvedAt=todayLocal();}
+  await saveData();render(true);toast(t('saved'));
 }
 async function delInfluencer(id){
   if(!confirm(t('deleteConfirm')))return;
@@ -1300,7 +1281,7 @@ async function saveBooking(id){
   const time=document.getElementById('b_time').value.trim();
   if(!infId){toast(t('selectInfluencer'));return;}
   if(id){const b=DB.bookings.find(x=>x.id===id);Object.assign(b,{infId,clinicId,date,time});}
-  else{DB.bookings.push({id:uid('b'),infId,clinicId,date,time,stage:'confirmed',footageUrl:'',finalUrl:'',uploadDate:'',revisions:[]});}
+  else{DB.bookings.push({id:uid('b'),infId,clinicId,date,time,stage:'confirmed',footageUrl:'',finalUrl:'',uploadDate:'',plan:{},stageDates:{},revisions:[]});}
   const x=inf(infId);if(x)x.status='confirmed';
   await saveData();closeModal();state.tab='reviews';setupChrome();render();toast(t('saved'));
 }
@@ -1323,10 +1304,14 @@ function exportExcel(){
   const bkRows=DB.bookings.map(b=>{
     const x=inf(b.infId)||{};
     const sd=b.stageDates||{};
+    const pl=b.plan||{};
     return {Influencer:x.h||'',Clinic:clinicLabel(b.clinicId),Date:b.date,Time:b.time,
-      Stage:STAGE_LABEL.en[b.stage],'Visit date':sd.visited||'','First-cut date':sd.footage||'',
+      Stage:STAGE_LABEL.en[b.stage],
+      'Visit date (done)':sd.visited||'',
+      'First-cut (expected)':pl.footage||'','First-cut (done)':sd.footage||'',
+      'Upload (expected)':pl.upload||'','Upload (done)':b.uploadDate||sd.uploaded||'',
       'Footage link':b.footageUrl,'Uploaded link':b.finalUrl,
-      'Upload date':b.uploadDate||sd.uploaded||'','Open revisions':(b.revisions||[]).filter(r=>!r.resolved).length,
+      'Open revisions':(b.revisions||[]).filter(r=>!r.resolved).length,
       'Total revisions':(b.revisions||[]).length};
   });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkRows),'Reviews');
@@ -1335,7 +1320,7 @@ function exportExcel(){
     revRows.push({Influencer:x.h||'',Clinic:clinicLabel(b.clinicId),From:r.by,Request:r.text,
       Date:r.at,Resolved:r.resolved?'Yes':'No'});});});
   if(revRows.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(revRows),'Revisions');
-  XLSX.writeFile(wb,'babyGLOW_Campaign_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  XLSX.writeFile(wb,'babyGLOW_Campaign_'+todayLocal()+'.xlsx');
 }
 
 /* ---------- toast ---------- */
