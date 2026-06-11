@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajhax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --porcelain:#FBF7F3; --surface:#FFFFFF; --ink:#2C2330; --muted:#9A8E94;
@@ -265,6 +265,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--coral);outline-o
 .cal-cell.today .cal-num{background:var(--coral);color:#fff}
 .cal-chip{font-size:10px;font-weight:600;background:var(--soft);color:var(--coral-deep);border-radius:6px;padding:2px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
 .cal-chip.upl{background:var(--green-soft);color:var(--green)}
+.cal-chip.cut{background:var(--blue-soft);color:var(--blue)}
+.cal-chip.vis{background:var(--warn-soft);color:var(--warn)}
 .cal-more{font-size:9px;color:var(--muted);font-weight:600;padding-left:2px}
 @media(max-width:560px){.cal-cell{min-height:56px;padding:3px}.cal-chip{font-size:8.5px;padding:1px 3px}.cal-grid{gap:4px}}
 </style>
@@ -358,6 +360,7 @@ const I18N={
     finalUrl:'Uploaded video link',uploadDate:'Upload date',saveLinks:'Save links',
     approveUpload:'Approve upload',markReady:'Mark upload ready',markUploaded:'Mark uploaded',
     revisions:'Revision requests',reqRevision:'Request revision',resolveRev:'Mark resolved',
+    markDone:'Mark done',noRevYet:'No requests from reviewer yet',
     revPlaceholder:'Describe the change you need…',send:'Send request',
     noBookings:'No confirmed reviews yet',noBookingsSub:'Confirm an influencer to create a review.',
     noClinics:'No clinics yet',noVideo:'Video not uploaded yet',
@@ -370,6 +373,7 @@ const I18N={
     orLink:'or paste a hosted link',videoTooLarge:'File too large to store in-app (max ~3.5MB). Paste a hosted link instead (Google Drive, YouTube, or .mp4).',
     removeVideo:'Remove video',chooseFile:'Choose file',
     tab_stats:'Overview',
+    timelineDates:'Timeline dates',visitDate:'Visit date',footageDate:'First-cut date',setAllUpload:'Set upload date for all',
     mode_claude:'Claude storage',mode_cloud:'Cloud sync',mode_local:'This device',
     localNote:'Saved in this browser only. Reviewers on other devices won\u2019t see your updates until you enable free cloud sync (see the note at the top of the HTML file).'
   },
@@ -391,6 +395,7 @@ const I18N={
     finalUrl:'업로드 영상 링크',uploadDate:'업로드 날짜',saveLinks:'링크 저장',
     approveUpload:'업로드 승인',markReady:'업로드 준비 완료',markUploaded:'업로드 완료',
     revisions:'수정 요청',reqRevision:'수정 신청',resolveRev:'수정 완료',
+    markDone:'반영 완료',noRevYet:'리뷰어의 요청이 아직 없습니다',
     revPlaceholder:'필요한 수정 사항을 적어주세요…',send:'요청 보내기',
     noBookings:'확정된 리뷰가 없습니다',noBookingsSub:'인플루언서를 확정하면 리뷰가 생성됩니다.',
     noClinics:'등록된 클리닉이 없습니다',noVideo:'아직 영상이 업로드되지 않았습니다',
@@ -403,6 +408,7 @@ const I18N={
     orLink:'또는 호스팅 링크 붙여넣기',videoTooLarge:'앱에 저장하기엔 파일이 너무 큽니다(최대 약 3.5MB). 호스팅 링크(구글 드라이브, 유튜브, .mp4)를 붙여넣어 주세요.',
     removeVideo:'영상 삭제',chooseFile:'파일 선택',
     tab_stats:'통계',
+    timelineDates:'타임라인 날짜',visitDate:'방문 날짜',footageDate:'1차 영상 날짜',setAllUpload:'전체 업로드 날짜 설정',
     mode_claude:'Claude 저장소',mode_cloud:'클라우드 동기화',mode_local:'이 기기',
     localNote:'이 브라우저에만 저장됩니다. 다른 기기의 리뷰어가 업데이트를 보려면 무료 클라우드 동기화를 켜야 합니다(HTML 파일 상단 주석 참고).'
   }
@@ -505,7 +511,7 @@ let DB=null;
     small internal team. Uploaded video FILES may exceed the free
     cloud size limit — prefer pasting Google Drive / YouTube links.)
    ============================================================ */
-const CLOUD={ enabled:false, binId:'6a295019da38895dfea6316e', key:'$2a$10$Y6cFD2IJNLFWhCoCGvNqRegHnjLx/y0UHxtgftyahJvu/CNoO9K82' };
+const CLOUD={ enabled:true, binId:'6a295019da38895dfea6316e', key:'$2a$10$Y6cFD2IJNLFWhCoCGvNqRegHnjLx/y0UHxtgftyahJvu/CNoO9K82' };
 
 const Store={
   mode:(typeof window!=='undefined'&&window.storage&&typeof window.storage.get==='function')?'claude'
@@ -555,8 +561,26 @@ async function reloadData(){
   render();toast(t('saved'));
 }
 
+/* ---------- auto-sync polling (cloud mode) ---------- */
+let _pollT=null;
+function startAutoSync(){
+  if(_pollT)clearInterval(_pollT);
+  if(Store.mode!=='cloud')return;
+  _pollT=setInterval(async()=>{
+    if(!state.role)return;
+    // don't disrupt active editing
+    if(document.getElementById('modalRoot').innerHTML.trim())return;
+    const ae=document.activeElement;
+    if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT'))return;
+    try{
+      const fresh=await Store.getMain();
+      if(fresh&&JSON.stringify(fresh)!==JSON.stringify(DB)){DB=fresh;videoCache={};render();}
+    }catch(e){}
+  },20000);
+}
+
 /* ---------- app state ---------- */
-const state={role:null,lang:'en',tab:'influencers',filter:'all',schedView:'list',schedMonth:null,schedDay:null};
+const state={role:null,lang:'en',tab:'influencers',filter:'all',schedView:'calendar',schedMonth:null,schedDay:null};
 function t(k){return (I18N[state.lang]&&I18N[state.lang][k])||I18N.en[k]||k;}
 function stageLabel(s){return (STAGE_LABEL[state.lang]||STAGE_LABEL.en)[s];}
 
@@ -577,10 +601,11 @@ async function enter(role){
   document.getElementById('gate').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   if(!DB){const d=await loadData();DB=d||seed();await saveData();}
-  setupChrome();render();
+  setupChrome();render();startAutoSync();
 }
 function signOut(){
   state.role=null;
+  if(_pollT){clearInterval(_pollT);_pollT=null;}
   document.getElementById('app').classList.add('hidden');
   document.getElementById('gate').classList.remove('hidden');
   document.getElementById('pwWrap').classList.add('hidden');
@@ -632,7 +657,10 @@ function clinic(id){return DB.clinics.find(x=>x.id===id);}
 function clinicLabel(id){const c=clinic(id);if(!c)return '—';return c.name+(c.branch?' · '+c.branch:'');}
 function avatar(x,size){
   const s=size||46;
-  if(x.photoUrl)return `<div class="avatar" style="width:${s}px;height:${s}px"><img src="${esc(x.photoUrl)}" alt=""></div>`;
+  if(x.photoUrl){
+    const init0=esc(((x.h||'?').replace(/[^A-Za-zก-๙ㄱ-힣]/,'').charAt(0)||(x.h||'?').charAt(0)).toUpperCase());
+    return `<div class="avatar" style="width:${s}px;height:${s}px;background:${avColor(x.h)}"><img src="${esc(x.photoUrl)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display='none';this.parentNode.textContent='${init0}'"></div>`;
+  }
   const init=(x.h||'?').replace(/[^A-Za-zก-๙ㄱ-힣]/,'').charAt(0).toUpperCase()||(x.h||'?').charAt(0).toUpperCase();
   return `<div class="avatar" style="width:${s}px;height:${s}px;background:${avColor(x.h)}">${esc(init)}</div>`;
 }
@@ -803,9 +831,25 @@ function reviewRow(b){
 function viewTrack(){
   const sorted=[...DB.bookings].sort((a,b)=>STAGES.indexOf(a.stage)-STAGES.indexOf(b.stage));
   return `
-  <div class="sec-head"><div><h2>${t('track_title')}</h2><p>${t('track_sub')}</p></div></div>
+  <div class="sec-head"><div><h2>${t('track_title')}</h2><p>${t('track_sub')}</p></div>
+    <div class="sec-actions">
+      <input id="bulkUploadDate" type="date" style="max-width:160px;display:inline-block;width:auto">
+      <button class="btn-ghost" onclick="bulkSetUploadDate(document.getElementById('bulkUploadDate').value)">${t('setAllUpload')}</button>
+    </div>
+  </div>
   ${sorted.length?sorted.map(trackCard).join(''):
     `<div class="empty"><span class="ic">📈</span><div class="t">${t('noBookings')}</div></div>`}`;
+}
+async function bulkSetUploadDate(val){
+  val=(val||'').trim();if(!val){toast(t('uploadDate')+' ?');return;}
+  DB.bookings.forEach(b=>{
+    b.uploadDate=val;
+    if(!b.stageDates)b.stageDates={};
+    b.stageDates.uploaded=val;
+    b.stage='uploaded';
+    const x=inf(b.infId);if(x)x.status='confirmed';
+  });
+  await saveData();render();toast(t('saved'));
 }
 function trackCard(b){
   const x=inf(b.infId)||{h:'?'};
@@ -823,12 +867,12 @@ function trackCard(b){
   else if(b.stage==='footage')wf=adv('approved',t('approveUpload'));
   else if(b.stage==='approved')wf=adv('ready',t('markReady'));
   else if(b.stage==='ready')wf=adv('uploaded',t('markUploaded'));
-  // revisions
+  // revisions (reviewer-submitted only; admin marks them done)
   const revs=(b.revisions||[]).map(r=>`
     <div class="rev-msg ${r.by}">
       <div class="meta"><span>${r.by==='viewer'?t('by_viewer'):t('by_admin')} · ${esc(r.at)}</span>
-        ${r.resolved?`<span class="resolved">✓ ${t('resolved')}</span>`:
-          `<button class="mini" style="padding:2px 7px" onclick="resolveRev('${b.id}','${r.id}')">${t('resolveRev')}</button>`}</div>
+        ${r.resolved?`<span class="resolved">✓ ${t('resolved')}${r.resolvedAt?' · '+esc(r.resolvedAt):''}</span>`:
+          `<button class="mini solid" style="padding:2px 9px" onclick="resolveRev('${b.id}','${r.id}')">${t('markDone')}</button>`}</div>
       ${esc(r.text)}
     </div>`).join('');
 
@@ -857,17 +901,23 @@ function trackCard(b){
       <input id="vu_${b.id}" value="${esc(b.finalUrl)}" placeholder="https://…">
       <button class="mini" onclick="saveBookingField('${b.id}','finalUrl',document.getElementById('vu_${b.id}').value)">${t('save')}</button>
     </div>
+    <div class="divider"></div>
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">${t('timelineDates')}</div>
+    <div class="field-row"><label>${t('visitDate')}</label>
+      <input id="vd_${b.id}" type="date" value="${esc((b.stageDates&&b.stageDates.visited)||'')}" style="max-width:180px">
+      <button class="mini" onclick="saveStageDate('${b.id}','visited',document.getElementById('vd_${b.id}').value)">${t('save')}</button>
+    </div>
+    <div class="field-row"><label>${t('footageDate')}</label>
+      <input id="fd_${b.id}" type="date" value="${esc((b.stageDates&&b.stageDates.footage)||'')}" style="max-width:180px">
+      <button class="mini" onclick="saveStageDate('${b.id}','footage',document.getElementById('fd_${b.id}').value)">${t('save')}</button>
+    </div>
     <div class="field-row"><label>${t('uploadDate')}</label>
       <input id="ud_${b.id}" type="date" value="${esc(b.uploadDate)}" style="max-width:180px">
       <button class="mini" onclick="saveBookingField('${b.id}','uploadDate',document.getElementById('ud_${b.id}').value)">${t('save')}</button>
     </div>
     <div class="divider"></div>
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">${t('revisions')} (${(b.revisions||[]).length})</div>
-    <div class="rev-thread">${revs||'<div style="font-size:13px;color:var(--muted)">—</div>'}</div>
-    <div class="field-row">
-      <input id="rv_${b.id}" placeholder="${t('revPlaceholder')}">
-      <button class="mini solid" onclick="addRevision('${b.id}','admin',document.getElementById('rv_${b.id}').value)">${t('reqRevision')}</button>
-    </div>
+    <div class="rev-thread">${revs||`<div style="font-size:13px;color:var(--muted)">${t('noRevYet')}</div>`}</div>
   </div>`;
 }
 
@@ -1012,8 +1062,13 @@ function viewerCalendar(){
     let chips='';
     items.slice(0,3).forEach(b=>{
       const x=inf(b.infId)||{h:'?'};
-      const upl=b.stage==='uploaded'?'upl':'';
-      chips+=`<div class="cal-chip ${upl}">${esc(x.h)}${b.time?' '+esc(b.time):''}</div>`;
+      const si=STAGES.indexOf(b.stage);
+      let cls='';
+      if(b.stage==='uploaded')cls='upl';
+      else if(si>=STAGES.indexOf('footage'))cls='cut';
+      else if(si>=STAGES.indexOf('visited'))cls='vis';
+      const dot=b.stage==='uploaded'?'● ':(si>=STAGES.indexOf('footage')?'◎ ':(si>=STAGES.indexOf('visited')?'◍ ':''));
+      chips+=`<div class="cal-chip ${cls}">${dot}${esc(x.h)}${b.time?' '+esc(b.time):''}</div>`;
     });
     if(items.length>3)chips+=`<div class="cal-more">+${items.length-3} more</div>`;
     cells+=`<div class="cal-cell ${has} ${sel} ${today}" ${items.length?`onclick="selectSchedDay('${ds}')"`:''}>
@@ -1036,7 +1091,12 @@ function viewerCalendar(){
       </div>
     </div>
     <div class="cal-grid">${dowRow}${cells}</div>
-    ${bookings.length?'<div style="font-size:11.5px;color:var(--muted);margin-top:12px">Tap a day to see its reviews.</div>':'<div style="font-size:12.5px;color:var(--muted);margin-top:10px">No confirmed reviews yet.</div>'}
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted)">
+      <span><span style="color:var(--warn)">◍</span> Visit done</span>
+      <span><span style="color:var(--blue)">◎</span> First-cut</span>
+      <span><span style="color:var(--green)">●</span> Uploaded</span>
+    </div>
+    ${bookings.length?'<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Tap a day to see its reviews.</div>':'<div style="font-size:12.5px;color:var(--muted);margin-top:10px">No confirmed reviews yet.</div>'}
   </div>${detail}`;
 }
 function viewerScheduleCard(b){
@@ -1046,10 +1106,12 @@ function viewerScheduleCard(b){
   const src=videoSrc(b);
   const cut=!!src||idx>=STAGES.indexOf('footage');
   const uploaded=b.stage==='uploaded';
+  const sd=b.stageDates||{};
+  const dtag=d=>d?` <em>${esc(d)}</em>`:'';
   const revs=(b.revisions||[]).map(r=>`
     <div class="rev-msg ${r.by}">
       <div class="meta"><span>${r.by==='viewer'?'You':'Team'} · ${esc(r.at)}</span>
-        ${r.resolved?`<span class="resolved">✓ Resolved</span>`:''}</div>
+        ${r.resolved?`<span class="resolved">✓ Done${r.resolvedAt?' · '+esc(r.resolvedAt):''}</span>`:`<span style="color:var(--warn);font-weight:700">● In review</span>`}</div>
       ${esc(r.text)}</div>`).join('');
   return `<div class="bcard">
     <div class="bcard-head">${avatar(x,40)}
@@ -1057,9 +1119,9 @@ function viewerScheduleCard(b){
     </div>
     <div style="margin-top:6px">
       <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Clinic visit <em>${esc(b.date||'TBD')}${b.time?' · '+esc(b.time):''}</em></span></div>
-      <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Visit completed</span></div>
-      <div class="ms ${cut?'on':''}"><span class="msdot">${cut?'✓':''}</span><span class="mslab">First-cut video received</span></div>
-      <div class="ms ${uploaded?'on':''}"><span class="msdot">${uploaded?'✓':''}</span><span class="mslab">Uploaded${uploaded&&b.uploadDate?` <em>${esc(b.uploadDate)}</em>`:''}</span></div>
+      <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Visit completed${dtag(sd.visited)}</span></div>
+      <div class="ms ${cut?'on':''}"><span class="msdot">${cut?'✓':''}</span><span class="mslab">First-cut video received${dtag(sd.footage)}</span></div>
+      <div class="ms ${uploaded?'on':''}"><span class="msdot">${uploaded?'✓':''}</span><span class="mslab">Uploaded${dtag(b.uploadDate||sd.uploaded)}</span></div>
     </div>
     ${src?videoEmbed(src):`<div class="no-video">First-cut video not delivered yet.</div>`}
     ${src?`
@@ -1081,7 +1143,11 @@ function uid(p){return p+Math.random().toString(36).slice(2,8);}
 async function setStage(id,stage){
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
   b.stage=stage;
-  if(stage==='uploaded'&&!b.uploadDate)b.uploadDate=new Date().toISOString().slice(0,10);
+  const today=new Date().toISOString().slice(0,10);
+  if(!b.stageDates)b.stageDates={};
+  // record the date this stage was reached (keep existing if already set)
+  if(!b.stageDates[stage])b.stageDates[stage]=today;
+  if(stage==='uploaded'&&!b.uploadDate)b.uploadDate=today;
   // sync influencer status to confirmed
   const x=inf(b.infId);if(x)x.status='confirmed';
   await saveData();render();toast(t('saved'));
@@ -1089,6 +1155,26 @@ async function setStage(id,stage){
 async function saveBookingField(id,field,val){
   const b=DB.bookings.find(x=>x.id===id);if(!b)return;
   b[field]=val.trim();
+  if(field==='uploadDate'&&b[field]){
+    if(!b.stageDates)b.stageDates={};
+    if(!b.stageDates.uploaded)b.stageDates.uploaded=b[field];
+    if(STAGES.indexOf(b.stage)<STAGES.indexOf('uploaded'))b.stage='uploaded';
+    const x=inf(b.infId);if(x)x.status='confirmed';
+  }
+  await saveData();render();toast(t('saved'));
+}
+async function saveStageDate(id,stage,val){
+  const b=DB.bookings.find(x=>x.id===id);if(!b)return;
+  if(!b.stageDates)b.stageDates={};
+  val=(val||'').trim();
+  if(val){
+    b.stageDates[stage]=val;
+    if(STAGES.indexOf(b.stage)<STAGES.indexOf(stage))b.stage=stage;
+    const x=inf(b.infId);if(x)x.status='confirmed';
+    if(stage==='uploaded'&&!b.uploadDate)b.uploadDate=val;
+  }else{
+    delete b.stageDates[stage];
+  }
   await saveData();render();toast(t('saved'));
 }
 async function addRevision(id,by,text){
@@ -1236,9 +1322,11 @@ function exportExcel(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(clRows),'Clinics');
   const bkRows=DB.bookings.map(b=>{
     const x=inf(b.infId)||{};
+    const sd=b.stageDates||{};
     return {Influencer:x.h||'',Clinic:clinicLabel(b.clinicId),Date:b.date,Time:b.time,
-      Stage:STAGE_LABEL.en[b.stage],'Footage link':b.footageUrl,'Uploaded link':b.finalUrl,
-      'Upload date':b.uploadDate,'Open revisions':(b.revisions||[]).filter(r=>!r.resolved).length,
+      Stage:STAGE_LABEL.en[b.stage],'Visit date':sd.visited||'','First-cut date':sd.footage||'',
+      'Footage link':b.footageUrl,'Uploaded link':b.finalUrl,
+      'Upload date':b.uploadDate||sd.uploaded||'','Open revisions':(b.revisions||[]).filter(r=>!r.resolved).length,
       'Total revisions':(b.revisions||[]).length};
   });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkRows),'Reviews');
