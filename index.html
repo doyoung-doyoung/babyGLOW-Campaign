@@ -357,13 +357,13 @@ const STAGE_LABEL={
 
 const I18N={
   en:{
-    tab_influencers:'Influencers',tab_clinics:'Clinics',tab_reviews:'Confirmed reviews',tab_track:'Status tracking',
+    tab_influencers:'Influencers',tab_clinics:'Clinics',tab_reviews:'Selected Influencers',tab_track:'Status tracking',
     refresh:'Refresh',saveTop:'Save',signOut:'Sign out',exportExcel:'Export Excel',
     inf_title:'Influencers',inf_sub:'Everyone in the pipeline, by status.',
     addInfluencer:'+ Add influencer',addClinic:'+ Add clinic',confirmReview:'+ Confirm review',
     fAll:'All',fConfirmed:'Confirmed',fSecured:'Secured',fCandidate:'Candidate',fRejected:'Passed',
     clinic_title:'Clinics',clinic_sub:'Partner clinics secured for the campaign.',
-    rev_title:'Confirmed reviews',rev_sub:'Influencer · clinic · date · time.',
+    rev_title:'Selected Influencers',rev_sub:'Influencer · clinic · date · time.',
     track_title:'Status tracking',track_sub:'Visit → filming → footage → revisions → upload.',
     handle:'Handle',realName:'Real name',area:'Area',dates:'Available',clinic:'Clinic',branch:'Branch',
     date:'Date',time:'Time',ig:'Instagram',tt:'TikTok',followers:'followers',note:'Note',map:'Map',
@@ -371,24 +371,24 @@ const I18N={
     edit:'Edit',del:'Delete',save:'Save',cancel:'Cancel',confirm:'Confirm review',
     pickInfluencer:'Influencer',selectClinic:'Select clinic…',selectInfluencer:'Select influencer…',
     markVisit:'Mark visited',markFilmed:'Mark filmed',footageUrl:'Footage link (Google Drive)',
-    finalUrl:'Uploaded video link',uploadDate:'Upload date',saveLinks:'Save links',
+    finalUrl:'Uploadvideo link',uploadDate:'Upload date',saveLinks:'Save links',
     approveUpload:'Approve upload',markReady:'Mark upload ready',markUploaded:'Mark uploaded',
     revisions:'Revision requests',reqRevision:'Request revision',resolveRev:'Mark resolved',
     markDone:'Mark done',noRevYet:'No requests from reviewer yet',
     revPlaceholder:'Describe the change you need…',send:'Send request',
-    noBookings:'No confirmed reviews yet',noBookingsSub:'Confirm an influencer to create a review.',
-    noClinics:'No clinics yet',noVideo:'Video not uploaded yet',
+    noBookings:'No Selected Influencers yet',noBookingsSub:'Confirm an influencer to create a review.',
+    noClinics:'No clinics yet',noVideo:'Video not Uploadyet',
     watchVideo:'Open video',resolved:'Resolved',open:'Open',by_viewer:'Reviewer',by_admin:'Admin',
-    bookedAt:'Booked',unscheduled:'time TBD',advanceStage:'Advance',
+    SelectedAt:'Selected',unscheduled:'time TBD',advanceStage:'Advance',
     deleteConfirm:'Delete this item?',saved:'Saved',
     viewer_h:'Footage to review',viewer_p:'Watch each delivered video and request changes if needed. The team will be notified.',
     track_pending:'These reviews are confirmed but footage is not yet delivered.',
-    tab_schedule:'Schedule',firstCutVideo:'First-cut video (from influencer)',uploadVideoBtn:'Upload video file',
+    tab_schedule:'Schedule',firstCutVideo:'First Edit video (from influencer)',uploadVideoBtn:'Upload video file',
     orLink:'or paste a hosted link',videoTooLarge:'File too large to store in-app (max ~3.5MB). Paste a hosted link instead (Google Drive, YouTube, or .mp4).',
     removeVideo:'Remove video',chooseFile:'Choose file',
     tab_stats:'Overview',
     timelineDates:'Timeline dates',expected:'Expected',done:'Completed',exp:'expected',
-    visitRow:'Clinic visit',firstCutRow:'First-cut',uploadRow:'Upload',
+    visitRow:'Clinic visit',firstCutRow:'First Edit',uploadRow:'Upload',
     setAllPlanUpload:'Set expected upload date — all',
     mode_claude:'Claude storage',mode_cloud:'Cloud sync',mode_local:'This device',
     localNote:'Saved in this browser only. Reviewers on other devices won\u2019t see your updates until you enable free cloud sync (see the note at the top of the HTML file).'
@@ -416,7 +416,7 @@ const I18N={
     noBookings:'확정된 리뷰가 없습니다',noBookingsSub:'인플루언서를 확정하면 리뷰가 생성됩니다.',
     noClinics:'등록된 클리닉이 없습니다',noVideo:'아직 영상이 업로드되지 않았습니다',
     watchVideo:'영상 열기',resolved:'완료됨',open:'열기',by_viewer:'리뷰어',by_admin:'어드민',
-    bookedAt:'예약',unscheduled:'시간 미정',advanceStage:'다음 단계',
+    SelectedAt:'예약',unscheduled:'시간 미정',advanceStage:'다음 단계',
     deleteConfirm:'이 항목을 삭제할까요?',saved:'저장됨',
     viewer_h:'Footage to review',viewer_p:'Watch each delivered video and request changes if needed. The team will be notified.',
     track_pending:'확정되었으나 촬영본이 아직 전달되지 않은 리뷰입니다.',
@@ -455,7 +455,7 @@ let DB=null;
      3) Copy the Bin ID and your X-Master-Key
      4) Fill CLOUD below and set enabled:true, then redeploy.
    (Note: the key sits in client code, so use a private bin for a
-    small internal team. Uploaded video FILES may exceed the free
+    small internal team. Uploadvideo FILES may exceed the free
     cloud size limit — prefer pasting Google Drive / YouTube links.)
    ============================================================ */
 const CLOUD={ enabled:true, binId:'6a295019da38895dfea6316e', key:'$2a$10$Y6cFD2IJNLFWhCoCGvNqRegHnjLx/y0UHxtgftyahJvu/CNoO9K82' };
@@ -744,7 +744,7 @@ function clinicCard(c){
   return `<div class="clinic-card">
     <div class="cname">${esc(c.name)}</div>
     ${c.branch?`<div class="cbranch">${esc(c.branch)}</div>`:''}
-    <div class="cbookings">${n} ${n===1?'review':'reviews'} booked</div>
+    <div class="cbookings">${n} ${n===1?'review':'reviews'} Selected</div>
     ${c.mapUrl?`<a href="${esc(c.mapUrl)}" target="_blank" rel="noopener" style="font-size:13px;font-weight:600">📍 ${t('map')}</a>`:''}
     <div class="row-end">
       <button class="mini" onclick="openClinicModal('${c.id}')">${t('edit')}</button>
@@ -902,25 +902,25 @@ function viewerStats(){
   const s=computeStats();
   const cards=[
     ['Secured influencers',s.secured,'var(--coral-deep)'],
-    ['Confirmed reviews',s.confirmed,'var(--ink)'],
+    ['Selected Influencers',s.confirmed,'var(--ink)'],
     ['Visit completed',s.visited,'var(--green)'],
     ['Video received',s.video,'var(--blue)'],
     ['Uploaded',s.uploaded,'var(--green)'],
-    ['Open revisions',s.openRev,'var(--rose)']
+    ['Editing in progress',s.openRev,'var(--rose)']
   ];
   const base=Math.max(s.secured,s.confirmed,1);
   const funnel=[
     ['Secured influencers',s.secured],
     ['Clinic visit confirmed',s.scheduled],
     ['Visit completed',s.visited],
-    ['First-cut video received',s.video],
+    ['First Edit video received',s.video],
     ['Uploaded',s.uploaded]
   ];
   const clinics=DB.clinics.map(c=>{
     const cb=DB.bookings.filter(b=>b.clinicId===c.id);
-    return {name:c.name,booked:cb.length,visited:cb.filter(b=>STAGES.indexOf(b.stage)>=STAGES.indexOf('visited')).length,
+    return {name:c.name,Selected:cb.length,visited:cb.filter(b=>STAGES.indexOf(b.stage)>=STAGES.indexOf('visited')).length,
       uploaded:cb.filter(b=>b.stage==='uploaded').length};
-  }).filter(c=>c.booked>0);
+  }).filter(c=>c.Selected>0);
   return `
   <div class="viewer-intro"><h2>Campaign overview</h2><p>Live progress across every secured influencer and clinic.</p></div>
   <div class="stat-grid">${cards.map(([l,n,c])=>
@@ -931,8 +931,8 @@ function viewerStats(){
         <div class="funnel-track"><div class="funnel-fill" style="width:${Math.max(pct,4)}%">${n}</div></div></div>`;}).join('')}
   </div>
   ${clinics.length?`<div class="panel"><h3 class="panel-h">By clinic</h3>
-    <table class="stat-table"><thead><tr><th>Clinic</th><th>Booked</th><th>Visited</th><th>Uploaded</th></tr></thead>
-    <tbody>${clinics.map(c=>`<tr><td>${esc(c.name)}</td><td>${c.booked}</td><td>${c.visited}</td><td>${c.uploaded}</td></tr>`).join('')}</tbody></table>
+    <table class="stat-table"><thead><tr><th>Clinic</th><th>Selected</th><th>Visited</th><th>Uploaded</th></tr></thead>
+    <tbody>${clinics.map(c=>`<tr><td>${esc(c.name)}</td><td>${c.Selected}</td><td>${c.visited}</td><td>${c.uploaded}</td></tr>`).join('')}</tbody></table>
   </div>`:''}`;
 }
 function infCardRO(x){
@@ -956,7 +956,7 @@ function clinicCardRO(c){
   return `<div class="clinic-card">
     <div class="cname">${esc(c.name)}</div>
     ${c.branch?`<div class="cbranch">${esc(c.branch)}</div>`:''}
-    <div class="cbookings">${n} ${n===1?'review':'reviews'} booked</div>
+    <div class="cbookings">${n} ${n===1?'review':'reviews'} Selected</div>
     ${c.mapUrl?`<a href="${esc(c.mapUrl)}" target="_blank" rel="noopener" style="font-size:13px;font-weight:600">📍 Map</a>`:''}
   </div>`;
 }
@@ -984,14 +984,14 @@ function shiftSchedMonth(delta){
 function selectSchedDay(date){state.schedDay=(state.schedDay===date?null:date);render();}
 function viewerSchedule(){
   const sorted=[...DB.bookings].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-  const intro=`<div class="viewer-intro"><h2>Confirmed schedule</h2><p>Visit dates, expected upload dates, first-cut videos and revision requests — all in one place.</p></div>`;
+  const intro=`<div class="viewer-intro"><h2>Confirmed schedule</h2><p>Visit dates, expected upload dates, First Edit videos and revision requests — all in one place.</p></div>`;
   const toggle=`<div class="sched-toggle">
     <button class="fpill ${state.schedView!=='calendar'?'on':''}" onclick="setSchedView('list')">List</button>
     <button class="fpill ${state.schedView==='calendar'?'on':''}" onclick="setSchedView('calendar')">Calendar</button>
   </div>`;
   if(state.schedView==='calendar')return intro+toggle+viewerCalendar();
   return intro+toggle+(sorted.length?sorted.map(viewerScheduleCard).join(''):
-      `<div class="empty"><span class="ic">🗓️</span><div class="t">No confirmed reviews yet</div></div>`);
+      `<div class="empty"><span class="ic">🗓️</span><div class="t">No Selected Influencers yet</div></div>`);
 }
 function viewerCalendar(){
   // events: clinic visits on b.date + uploads (actual if uploaded, else expected) on their dates
@@ -1065,11 +1065,11 @@ function viewerCalendar(){
     <div class="cal-grid">${dowRow}${cells}</div>
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted)">
       <span><span style="color:var(--warn)">◍</span> Visit done</span>
-      <span><span style="color:var(--blue)">◎</span> First-cut</span>
+      <span><span style="color:var(--blue)">◎</span> First Edit</span>
       <span><span style="color:var(--green)">●</span> Uploaded</span>
       <span><span style="color:var(--coral-deep)">⬆</span> Upload (expected/done)</span>
     </div>
-    ${events.length?'<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Tap a day to see its reviews.</div>':'<div style="font-size:12.5px;color:var(--muted);margin-top:10px">No confirmed reviews yet.</div>'}
+    ${events.length?'<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Tap a day to see its reviews.</div>':'<div style="font-size:12.5px;color:var(--muted);margin-top:10px">No Selected Influencers yet.</div>'}
   </div>${detail}`;
 }
 function viewerScheduleCard(b){
@@ -1094,10 +1094,10 @@ function viewerScheduleCard(b){
     <div style="margin-top:6px">
       <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Clinic visit <em>${esc(b.date||'TBD')}${b.time?' · '+esc(b.time):''}</em></span></div>
       <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Visit completed${visited?done(sd.visited):exp(b.date)}</span></div>
-      <div class="ms ${cut?'on':''}"><span class="msdot">${cut?'✓':''}</span><span class="mslab">First-cut video received${cut?done(sd.footage):exp(pl.footage)}</span></div>
+      <div class="ms ${cut?'on':''}"><span class="msdot">${cut?'✓':''}</span><span class="mslab">First Edit video received${cut?done(sd.footage):exp(pl.footage)}</span></div>
       <div class="ms ${uploaded?'on':''}"><span class="msdot">${uploaded?'✓':''}</span><span class="mslab">Uploaded${uploaded?done(b.uploadDate||sd.uploaded):exp(pl.upload)}</span></div>
     </div>
-    ${src?videoEmbed(src):`<div class="no-video">First-cut video not delivered yet.</div>`}
+    ${src?videoEmbed(src):`<div class="no-video">First Edit video not delivered yet.</div>`}
     ${src?`
       <div class="divider"></div>
       <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">Revision requests</div>
@@ -1298,7 +1298,7 @@ function exportExcel(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(infRows),'Influencers');
   const clRows=DB.clinics.map(c=>{
     const n=DB.bookings.filter(b=>b.clinicId===c.id).length;
-    return {Clinic:c.name,Branch:c.branch,'Map URL':c.mapUrl,'Reviews booked':n};
+    return {Clinic:c.name,Branch:c.branch,'Map URL':c.mapUrl,'Reviews Selected':n};
   });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(clRows),'Clinics');
   const bkRows=DB.bookings.map(b=>{
@@ -1308,10 +1308,10 @@ function exportExcel(){
     return {Influencer:x.h||'',Clinic:clinicLabel(b.clinicId),Date:b.date,Time:b.time,
       Stage:STAGE_LABEL.en[b.stage],
       'Visit date (done)':sd.visited||'',
-      'First-cut (expected)':pl.footage||'','First-cut (done)':sd.footage||'',
+      'First Edit (expected)':pl.footage||'','First Edit (done)':sd.footage||'',
       'Upload (expected)':pl.upload||'','Upload (done)':b.uploadDate||sd.uploaded||'',
-      'Footage link':b.footageUrl,'Uploaded link':b.finalUrl,
-      'Open revisions':(b.revisions||[]).filter(r=>!r.resolved).length,
+      'Footage link':b.footageUrl,'Uploadlink':b.finalUrl,
+      'Editing in progress':(b.revisions||[]).filter(r=>!r.resolved).length,
       'Total revisions':(b.revisions||[]).length};
   });
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(bkRows),'Reviews');
