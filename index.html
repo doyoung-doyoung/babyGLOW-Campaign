@@ -347,12 +347,12 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--coral);outline-o
 const STORE_KEY='babyglow:data:v1';
 const ADMIN_PW='1234';
 
-const STAGES=['confirmed','visited','filmed','footage','approved','ready','uploaded'];
+const STAGES=['confirmed','visited','filmed','footage','approved','ready','Upload'];
 const STAGE_LABEL={
   en:{confirmed:'Confirmed',visited:'Clinic visit',filmed:'Filming done',footage:'Footage received',
-      approved:'Upload approved',ready:'Upload ready',uploaded:'Uploaded'},
+      approved:'Upload approved',ready:'Upload ready',Upload:'Upload'},
   ko:{confirmed:'확정',visited:'방문 완료',filmed:'촬영 완료',footage:'촬영본 받음',
-      approved:'업로드 승인',ready:'업로드 준비',uploaded:'업로드 완료'}
+      approved:'업로드 승인',ready:'업로드 준비',Upload:'업로드 완료'}
 };
 
 const I18N={
@@ -372,7 +372,7 @@ const I18N={
     pickInfluencer:'Influencer',selectClinic:'Select clinic…',selectInfluencer:'Select influencer…',
     markVisit:'Mark visited',markFilmed:'Mark filmed',footageUrl:'Footage link (Google Drive)',
     finalUrl:'Uploadvideo link',uploadDate:'Upload date',saveLinks:'Save links',
-    approveUpload:'Approve upload',markReady:'Mark upload ready',markUploaded:'Mark uploaded',
+    approveUpload:'Approve upload',markReady:'Mark upload ready',markUpload:'Mark Upload',
     revisions:'Revision requests',reqRevision:'Request revision',resolveRev:'Mark resolved',
     markDone:'Mark done',noRevYet:'No requests from reviewer yet',
     revPlaceholder:'Describe the change you need…',send:'Send request',
@@ -409,7 +409,7 @@ const I18N={
     pickInfluencer:'인플루언서',selectClinic:'클리닉 선택…',selectInfluencer:'인플루언서 선택…',
     markVisit:'방문 완료',markFilmed:'촬영 완료',footageUrl:'촬영본 링크 (구글 드라이브)',
     finalUrl:'업로드 영상 링크',uploadDate:'업로드 날짜',saveLinks:'링크 저장',
-    approveUpload:'업로드 승인',markReady:'업로드 준비 완료',markUploaded:'업로드 완료',
+    approveUpload:'업로드 승인',markReady:'업로드 준비 완료',markUpload:'업로드 완료',
     revisions:'수정 요청',reqRevision:'수정 신청',resolveRev:'수정 완료',
     markDone:'반영 완료',noRevYet:'리뷰어의 요청이 아직 없습니다',
     revPlaceholder:'필요한 수정 사항을 적어주세요…',send:'요청 보내기',
@@ -819,7 +819,7 @@ function trackCard(b){
   else if(b.stage==='filmed')wf=adv('footage',t('footageUrl'));
   else if(b.stage==='footage')wf=adv('approved',t('approveUpload'));
   else if(b.stage==='approved')wf=adv('ready',t('markReady'));
-  else if(b.stage==='ready')wf=adv('uploaded',t('markUploaded'));
+  else if(b.stage==='ready')wf=adv('Upload',t('markUpload'));
   // revisions (reviewer-submitted only; admin marks them done)
   const revs=(b.revisions||[]).map(r=>`
     <div class="rev-msg ${r.by}">
@@ -869,7 +869,7 @@ function trackCard(b){
 
       <div class="dlab">${t('uploadRow')}</div>
       <div class="dcell"><input id="pu_${b.id}" type="date" title="${t('expected')}" value="${esc(pl.upload||'')}"><button class="mini" onclick="savePlanDate('${b.id}','upload',gv('pu_${b.id}'))">${t('save')}</button></div>
-      <div class="dcell"><input id="au_${b.id}" type="date" title="${t('done')}" value="${esc(b.uploadDate||sd.uploaded||'')}"><button class="mini solid" onclick="saveStageDate('${b.id}','uploaded',gv('au_${b.id}'))">${t('save')}</button></div>
+      <div class="dcell"><input id="au_${b.id}" type="date" title="${t('done')}" value="${esc(b.uploadDate||sd.Upload||'')}"><button class="mini solid" onclick="saveStageDate('${b.id}','Upload',gv('au_${b.id}'))">${t('save')}</button></div>
     </div>
     <div class="divider"></div>
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">${t('revisions')} (${(b.revisions||[]).length})</div>
@@ -893,10 +893,10 @@ function computeStats(){
   const scheduled=bks.filter(b=>!!b.date).length;
   const visited=bks.filter(b=>fi(b.stage)>=fi('visited')).length;
   const video=bks.filter(b=>!!videoSrc(b)||fi(b.stage)>=fi('footage')).length;
-  const uploaded=bks.filter(b=>b.stage==='uploaded').length;
+  const Upload=bks.filter(b=>b.stage==='Upload').length;
   let openRev=0,totalRev=0;
   bks.forEach(b=>(b.revisions||[]).forEach(r=>{totalRev++;if(!r.resolved)openRev++;}));
-  return {secured,confirmed,scheduled,visited,video,uploaded,openRev,totalRev};
+  return {secured,confirmed,scheduled,visited,video,Upload,openRev,totalRev};
 }
 function viewerStats(){
   const s=computeStats();
@@ -905,7 +905,7 @@ function viewerStats(){
     ['Selected Influencers',s.confirmed,'var(--ink)'],
     ['Visit completed',s.visited,'var(--green)'],
     ['Video received',s.video,'var(--blue)'],
-    ['Uploaded',s.uploaded,'var(--green)'],
+    ['Upload',s.Upload,'var(--green)'],
     ['Editing in progress',s.openRev,'var(--rose)']
   ];
   const base=Math.max(s.secured,s.confirmed,1);
@@ -914,12 +914,12 @@ function viewerStats(){
     ['Clinic visit confirmed',s.scheduled],
     ['Visit completed',s.visited],
     ['First Edit video received',s.video],
-    ['Uploaded',s.uploaded]
+    ['Upload',s.Upload]
   ];
   const clinics=DB.clinics.map(c=>{
     const cb=DB.bookings.filter(b=>b.clinicId===c.id);
     return {name:c.name,Selected:cb.length,visited:cb.filter(b=>STAGES.indexOf(b.stage)>=STAGES.indexOf('visited')).length,
-      uploaded:cb.filter(b=>b.stage==='uploaded').length};
+      Upload:cb.filter(b=>b.stage==='Upload').length};
   }).filter(c=>c.Selected>0);
   return `
   <div class="viewer-intro"><h2>Campaign overview</h2><p>Live progress across every secured influencer and clinic.</p></div>
@@ -931,8 +931,8 @@ function viewerStats(){
         <div class="funnel-track"><div class="funnel-fill" style="width:${Math.max(pct,4)}%">${n}</div></div></div>`;}).join('')}
   </div>
   ${clinics.length?`<div class="panel"><h3 class="panel-h">By clinic</h3>
-    <table class="stat-table"><thead><tr><th>Clinic</th><th>Selected</th><th>Visited</th><th>Uploaded</th></tr></thead>
-    <tbody>${clinics.map(c=>`<tr><td>${esc(c.name)}</td><td>${c.Selected}</td><td>${c.visited}</td><td>${c.uploaded}</td></tr>`).join('')}</tbody></table>
+    <table class="stat-table"><thead><tr><th>Clinic</th><th>Selected</th><th>Visited</th><th>Upload</th></tr></thead>
+    <tbody>${clinics.map(c=>`<tr><td>${esc(c.name)}</td><td>${c.Selected}</td><td>${c.visited}</td><td>${c.Upload}</td></tr>`).join('')}</tbody></table>
   </div>`:''}`;
 }
 function infCardRO(x){
@@ -994,13 +994,13 @@ function viewerSchedule(){
       `<div class="empty"><span class="ic">🗓️</span><div class="t">No Selected Influencers yet</div></div>`);
 }
 function viewerCalendar(){
-  // events: clinic visits on b.date + uploads (actual if uploaded, else expected) on their dates
+  // events: clinic visits on b.date + uploads (actual if Upload, else expected) on their dates
   const events=[];
   DB.bookings.forEach(b=>{
     if(b.date)events.push({date:b.date,b,kind:'visit'});
     const sd=b.stageDates||{}, pl=b.plan||{};
-    const actU=b.uploadDate||sd.uploaded||'';
-    if(b.stage==='uploaded'&&actU)events.push({date:actU,b,kind:'updone'});
+    const actU=b.uploadDate||sd.Upload||'';
+    if(b.stage==='Upload'&&actU)events.push({date:actU,b,kind:'updone'});
     else if(pl.upload)events.push({date:pl.upload,b,kind:'uplan'});
   });
   let ym=state.schedMonth;
@@ -1029,10 +1029,10 @@ function viewerCalendar(){
       if(e.kind==='visit'){
         const si=STAGES.indexOf(e.b.stage);
         let cls='';
-        if(e.b.stage==='uploaded')cls='upl';
+        if(e.b.stage==='Upload')cls='upl';
         else if(si>=STAGES.indexOf('footage'))cls='cut';
         else if(si>=STAGES.indexOf('visited'))cls='vis';
-        const dot=e.b.stage==='uploaded'?'● ':(si>=STAGES.indexOf('footage')?'◎ ':(si>=STAGES.indexOf('visited')?'◍ ':''));
+        const dot=e.b.stage==='Upload'?'● ':(si>=STAGES.indexOf('footage')?'◎ ':(si>=STAGES.indexOf('visited')?'◍ ':''));
         chips+=`<div class="cal-chip ${cls}">${dot}${esc(x.h)}${e.b.time?' '+esc(e.b.time):''}</div>`;
       }else if(e.kind==='updone'){
         chips+=`<div class="cal-chip upl">⬆ ${esc(x.h)}</div>`;
@@ -1066,7 +1066,7 @@ function viewerCalendar(){
     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted)">
       <span><span style="color:var(--warn)">◍</span> Visit done</span>
       <span><span style="color:var(--blue)">◎</span> First Edit</span>
-      <span><span style="color:var(--green)">●</span> Uploaded</span>
+      <span><span style="color:var(--green)">●</span> Upload</span>
       <span><span style="color:var(--coral-deep)">⬆</span> Upload (expected/done)</span>
     </div>
     ${events.length?'<div style="font-size:11.5px;color:var(--muted);margin-top:8px">Tap a day to see its reviews.</div>':'<div style="font-size:12.5px;color:var(--muted);margin-top:10px">No Selected Influencers yet.</div>'}
@@ -1078,7 +1078,7 @@ function viewerScheduleCard(b){
   const visited=idx>=STAGES.indexOf('visited');
   const src=videoSrc(b);
   const cut=!!src||idx>=STAGES.indexOf('footage');
-  const uploaded=b.stage==='uploaded';
+  const Upload=b.stage==='Upload';
   const sd=b.stageDates||{}; const pl=b.plan||{};
   const done=d=>d?` <em>${esc(d)}</em>`:'';
   const exp=d=>d?` <span class="exp">${t('exp')} ${esc(d)}</span>`:'';
@@ -1095,14 +1095,14 @@ function viewerScheduleCard(b){
       <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Clinic visit <em>${esc(b.date||'TBD')}${b.time?' · '+esc(b.time):''}</em></span></div>
       <div class="ms ${visited?'on':''}"><span class="msdot">${visited?'✓':''}</span><span class="mslab">Visit completed${visited?done(sd.visited):exp(b.date)}</span></div>
       <div class="ms ${cut?'on':''}"><span class="msdot">${cut?'✓':''}</span><span class="mslab">First Edit video received${cut?done(sd.footage):exp(pl.footage)}</span></div>
-      <div class="ms ${uploaded?'on':''}"><span class="msdot">${uploaded?'✓':''}</span><span class="mslab">Uploaded${uploaded?done(b.uploadDate||sd.uploaded):exp(pl.upload)}</span></div>
+      <div class="ms ${Upload?'on':''}"><span class="msdot">${Upload?'✓':''}</span><span class="mslab">Upload${Upload?done(b.uploadDate||sd.Upload):exp(pl.upload)}</span></div>
     </div>
     ${src?videoEmbed(src):`<div class="no-video">First Edit video not delivered yet.</div>`}
     ${src?`
       <div class="divider"></div>
       <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px">Revision requests</div>
       <div class="rev-thread">${revs||'<div style="font-size:13px;color:var(--muted)">No requests yet.</div>'}</div>
-      ${uploaded?'<div style="font-size:12.5px;color:var(--green);font-weight:600;margin-top:4px">This video is live — revisions are closed.</div>':`<div class="field-row">
+      ${Upload?'<div style="font-size:12.5px;color:var(--green);font-weight:600;margin-top:4px">This video is live — revisions are closed.</div>':`<div class="field-row">
         <input id="rev_${b.id}" placeholder="Describe the change you need…">
         <button class="mini solid" onclick="addRevision('${b.id}','viewer',document.getElementById('rev_${b.id}').value)">Send request</button>
       </div>`}`:''}
@@ -1119,7 +1119,7 @@ async function setStage(id,stage){
   if(!b.stageDates)b.stageDates={};
   // record the date this stage was reached (keep existing if already set)
   if(!b.stageDates[stage])b.stageDates[stage]=today;
-  if(stage==='uploaded'&&!b.uploadDate)b.uploadDate=today;
+  if(stage==='Upload'&&!b.uploadDate)b.uploadDate=today;
   // sync influencer status to confirmed
   const x=inf(b.infId);if(x)x.status='confirmed';
   await saveData();render(true);toast(t('saved'));
@@ -1129,8 +1129,8 @@ async function saveBookingField(id,field,val){
   b[field]=(val||'').trim();
   if(field==='uploadDate'&&b[field]){
     if(!b.stageDates)b.stageDates={};
-    if(!b.stageDates.uploaded)b.stageDates.uploaded=b[field];
-    if(STAGES.indexOf(b.stage)<STAGES.indexOf('uploaded'))b.stage='uploaded';
+    if(!b.stageDates.Upload)b.stageDates.Upload=b[field];
+    if(STAGES.indexOf(b.stage)<STAGES.indexOf('Upload'))b.stage='Upload';
     const x=inf(b.infId);if(x)x.status='confirmed';
   }
   await saveData();render(true);toast(t('saved'));
@@ -1152,7 +1152,7 @@ async function saveStageDate(id,stage,val){
     b.stageDates[stage]=val;
     if(STAGES.indexOf(b.stage)<STAGES.indexOf(stage))b.stage=stage;
     const x=inf(b.infId);if(x)x.status='confirmed';
-    if(stage==='uploaded'&&!b.uploadDate)b.uploadDate=val;
+    if(stage==='Upload'&&!b.uploadDate)b.uploadDate=val;
   }else{
     delete b.stageDates[stage];
   }
@@ -1309,7 +1309,7 @@ function exportExcel(){
       Stage:STAGE_LABEL.en[b.stage],
       'Visit date (done)':sd.visited||'',
       'First Edit (expected)':pl.footage||'','First Edit (done)':sd.footage||'',
-      'Upload (expected)':pl.upload||'','Upload (done)':b.uploadDate||sd.uploaded||'',
+      'Upload (expected)':pl.upload||'','Upload (done)':b.uploadDate||sd.Upload||'',
       'Footage link':b.footageUrl,'Uploadlink':b.finalUrl,
       'Editing in progress':(b.revisions||[]).filter(r=>!r.resolved).length,
       'Total revisions':(b.revisions||[]).length};
